@@ -45,7 +45,7 @@ const PLANS = [
     id: "pro",
     name: "Pro",
     tag: "Recomendado",
-    price: "US$39",
+    price: "US$19",
     price_suffix: "/ mes",
     highlight: true,
     cta: "Probar Hyperion Pro",
@@ -62,7 +62,7 @@ const PLANS = [
     id: "agency",
     name: "Agency",
     tag: "Agencias",
-    price: "US$99",
+    price: "US$49",
     price_suffix: "/ mes",
     highlight: false,
     cta: "Hablar con ventas",
@@ -492,3 +492,4 @@ app.post("/api/licenses/activate", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Hyperion backend escuchando en http://localhost:${PORT}`);
 });
+
