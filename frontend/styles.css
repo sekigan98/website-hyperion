@@ -85,10 +85,10 @@ img {
 }
 
 .brand-logo {
-  height: 80px;        /* probá 48px si lo querés aún más grande */
-  width: auto;         /* mantiene la proporción del logo largo */
-  border-radius: 0;    /* sin esquinas redondeadas */
-  box-shadow: none;    /* opcional: sin sombra tipo “iconito” */
+  height: 80px;
+  width: auto;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* Por si en algún momento usás el icono circular */
@@ -305,6 +305,14 @@ img {
   padding: 0.2rem 0;
 }
 
+/* NUEVO: bloque de descarga en hero */
+.hero-download {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
 /* SECTIONS */
 
 .section {
@@ -328,6 +336,14 @@ img {
 .section-subtitle {
   margin: 0 auto 2.2rem;
   max-width: 40rem;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+/* NUEVO: nota bajo pricing */
+.section-note {
+  margin-top: 1.25rem;
+  font-size: 0.85rem;
   color: var(--text-soft);
   text-align: center;
 }
@@ -485,6 +501,11 @@ img {
   color: var(--text-soft);
 }
 
+/* NUEVO: textos pequeños */
+.small {
+  font-size: 0.8rem;
+}
+
 /* AUTH PAGES */
 
 .auth-body {
@@ -611,3 +632,4 @@ img {
     margin-inline: 0.8rem;
   }
 }
+
