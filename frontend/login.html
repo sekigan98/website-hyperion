@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Ingresar - Hyperion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="dark-mode auth-body">
+  <header class="site-header minimal">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">
+        <img src="assets/icon.png" alt="Hyperion" class="brand-logo" />
+        <span class="brand-name">Hyperion</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <section class="auth-card">
+      <h1>Ingresar</h1>
+      <p class="muted">Entrá a tu cuenta para gestionar tu licencia y descargas.</p>
+
+      <form id="login-form" class="auth-form">
+        <label>
+          Email
+          <input type="email" name="email" required autocomplete="email" />
+        </label>
+
+        <label>
+          Contraseña
+          <input type="password" name="password" required autocomplete="current-password" />
+        </label>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Ingresar
+        </button>
+
+        <p id="login-error" class="form-error" hidden></p>
+      </form>
+
+      <div class="auth-footer">
+        <p class="muted">
+          ¿No tenés cuenta?
+          <a href="#" id="show-register">Crear cuenta</a>
+        </p>
+      </div>
+
+      <form id="register-form" class="auth-form" hidden>
+        <h2>Crear cuenta</h2>
+        <label>
+          Email
+          <input type="email" name="email" required autocomplete="email" />
+        </label>
+
+        <label>
+          Contraseña
+          <input type="password" name="password" required minlength="6" autocomplete="new-password" />
+        </label>
+
+        <button type="submit" class="btn btn-outline btn-block">
+          Registrarme
+        </button>
+
+        <p id="register-error" class="form-error" hidden></p>
+      </form>
+    </section>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
