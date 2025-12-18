@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <title>Hyperion - WhatsApp Multi Sender</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Hyperion - Plataforma para campañas automatizadas de WhatsApp Multi Sender" />
+  <meta name="description" content="Hyperion - Plataforma para campañas automatizadas de WhatsApp Multi Sender, con múltiples cuentas, warmup y envío masivo desde una app de escritorio." />
   <!-- Favicon: cohete solo -->
   <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
@@ -39,10 +39,11 @@
           <!-- Logo largo en el héroe -->
           <img src="assets/hyperion-logo.png" alt="Hyperion" class="hero-logo" />
 
-          <h1>WhatsApp Multi Sender</h1>
+          <h1>Multi Sender de WhatsApp sin mil pestañas abiertas</h1>
           <p class="hero-subtitle">
-            Gestioná múltiples cuentas, calentamiento automático y campañas masivas
-            sin perder control ni quemar líneas.
+            Hyperion es una app de escritorio para gestionar múltiples cuentas,
+            hacer warmup automático y lanzar campañas masivas sin depender de que
+            tengas el navegador abierto todo el día.
           </p>
 
           <div class="hero-actions">
@@ -56,8 +57,8 @@
 
           <div class="hero-meta">
             <span>🛡 Evitá bloqueos con warmup inteligente</span>
-            <span>📊 Stats por cuenta y globales</span>
-            <span>⚡ Pensado para agencias y closers</span>
+            <span>📊 Stats globales y por cuenta</span>
+            <span>⚡ Pensado para closers, agencias y marketers</span>
           </div>
         </div>
 
@@ -65,13 +66,16 @@
           <div class="hero-tag">Desktop Client</div>
           <div class="hero-card-body">
             <h2>Hyperion Client</h2>
-            <p>Panel unificado para manejar todas tus líneas de WhatsApp.</p>
+            <p>
+              Panel unificado de escritorio para manejar todas tus líneas de WhatsApp,
+              sin depender de Chrome ni tener 10 pestañas de WhatsApp Web abiertas.
+            </p>
 
             <ul class="hero-list">
               <li>✅ Múltiples cuentas con QR</li>
               <li>✅ Campañas automáticas & manuales</li>
               <li>✅ Warmup inteligente integrado</li>
-              <li>✅ Historial y logs exportables</li>
+              <li>✅ Historial, logs y stats exportables</li>
             </ul>
 
             <div class="hero-download">
@@ -80,6 +84,9 @@
               </a>
               <small class="muted">
                 * Próximamente soporte para macOS y Linux.
+              </small>
+              <small class="muted">
+                Requiere cuenta en Hyperion y licencia activa según tu plan.
               </small>
             </div>
           </div>
@@ -92,32 +99,35 @@
       <div class="container">
         <h2 class="section-title">Pensado para escalar campañas, no para jugar al WhatsApp Web</h2>
         <p class="section-subtitle">
-          Hyperion te da el control fino sobre cada cuenta, warmup y campaña,
-          con una interfaz limpia y oscura, lista para trabajar muchas horas.
+          Hyperion corre en una app de escritorio y usa workers dedicados para mantener
+          tus sesiones vivas. Vos controlás las cuentas, el warmup y el ritmo de envío,
+          sin depender de tener un navegador abierto ni tocar cada conversación a mano.
         </p>
 
         <div class="grid grid-3">
           <article class="card">
-            <h3>Múltiples cuentas, cero drama</h3>
+            <h3>Múltiples cuentas, cero caos</h3>
             <p>
-              Agregá cuentas con QR, iniciá y detené workers cuando quieras.
-              Cada línea tiene sus propios stats y estados, claramente visibles.
+              Agregá cuentas con QR y dejá que cada worker maneje su sesión.
+              Ves estados, última actividad y stats por línea, todo desde un solo panel.
             </p>
           </article>
 
           <article class="card">
             <h3>Campañas inteligentes</h3>
             <p>
-              Modo automático con límite diario y distribución horaria o modo avanzado
-              con intervalos y jitter personalizados.
+              Modo automático con límite diario y distribución horaria, o modo avanzado
+              con intervalos y jitter personalizados. Ideal para que la cuenta parezca
+              una persona escribiendo, no un bot desesperado.
             </p>
           </article>
 
           <article class="card">
             <h3>Warmup integrado</h3>
             <p>
-              Calentamiento de cuentas con respuestas simuladas para evitar bloqueos.
-              Configurá peers, delays y comportamiento desde el panel.
+              Calentamiento automático entre cuentas para reducir riesgo de bloqueos:
+              mensajes simulados, tiempos de espera y comportamiento configurable
+              desde el panel de ajustes.
             </p>
           </article>
 
@@ -125,6 +135,7 @@
             <h3>Validación de contactos</h3>
             <p>
               Subí un CSV, validá números y generá un archivo limpio listo para la campaña.
+              Evitás perder tiempo y reputación escribiendo a números inválidos.
             </p>
           </article>
 
@@ -132,15 +143,16 @@
             <h3>Logs & métricas claras</h3>
             <p>
               Historial en tiempo real, exportable a CSV, más un dashboard con enviados,
-              inválidos y errores globales.
+              inválidos y errores por cuenta y globales. Sabés qué está pasando en cada momento.
             </p>
           </article>
 
           <article class="card">
             <h3>Listo para agencia</h3>
             <p>
-              Pensado para quienes manejan múltiples proyectos: stats por cuenta,
-              campañas simultáneas y configuración avanzada de warmup.
+              Pensado para quienes manejan múltiples proyectos: cuentas separadas,
+              campañas simultáneas, warmup configurable y límites por plan para
+              que escales sin improvisar infraestructura.
             </p>
           </article>
         </div>
@@ -152,12 +164,12 @@
       <div class="container">
         <h2 class="section-title">Planes pensados para cómo realmente trabajás</h2>
         <p class="section-subtitle">
-          Empezá con un plan base y escalá cuando tus campañas se pongan serias.
-          Podés cambiar de plan en cualquier momento.
+          Creás tu cuenta desde la web, elegís un plan y generás tu licencia.
+          Después descargás Hyperion Client, activás la licencia y empezás a enviar.
         </p>
 
         <div id="pricing-cards" class="grid grid-3 pricing-grid">
-          <!-- Fallback estático de planes -->
+          <!-- Fallback estático de planes (si la API no responde) -->
           <article class="card pricing-card">
             <div class="badge">Starter</div>
             <h3>Free</h3>
@@ -166,7 +178,7 @@
               <li>1 cuenta de WhatsApp</li>
               <li>Campañas manuales básicas</li>
               <li>Validación de contactos local</li>
-              <li>Soporte por email estándar</li>
+              <li>Warmup desactivado</li>
             </ul>
             <a href="login.html" class="btn btn-outline btn-block">
               Empezar gratis
@@ -180,7 +192,7 @@
             <ul class="pricing-list">
               <li>Hasta 5 cuentas de WhatsApp</li>
               <li>Campañas automáticas y avanzadas</li>
-              <li>Warmup inteligente</li>
+              <li>Warmup inteligente incluido</li>
               <li>Stats avanzadas por cuenta</li>
               <li>Soporte prioritario</li>
             </ul>
@@ -196,7 +208,7 @@
             <ul class="pricing-list">
               <li>10+ cuentas de WhatsApp</li>
               <li>Warmup agresivo + fine-tuning</li>
-              <li>Soporte dedicado</li>
+              <li>Suporte dedicado</li>
               <li>Asistencia en onboarding y setup</li>
             </ul>
             <a href="login.html" class="btn btn-outline btn-block">
@@ -207,7 +219,7 @@
 
         <p class="section-note">
           Próximamente: pago con tarjeta, PayPal, transferencia y más.  
-          Por ahora podés escribirnos para activaciones manuales.
+          Por ahora podés escribirnos para activaciones manuales y upgrades de plan.
         </p>
       </div>
     </section>
@@ -221,17 +233,20 @@
           <details class="faq-item" open>
             <summary>¿Necesito tener el navegador abierto todo el tiempo?</summary>
             <p>
-              Hyperion usa una app de escritorio con workers que manejan las
-              sesiones de WhatsApp. Mientras la app esté corriendo, tus campañas pueden seguir.
+              No. Hyperion corre como app de escritorio y levanta sus propios
+              procesos de navegador internos para cada cuenta. Mientras Hyperion
+              esté abierto, tus workers pueden seguir enviando aunque cierres
+              Chrome o tu navegador principal.
             </p>
           </details>
 
           <details class="faq-item">
             <summary>¿Hyperion cumple con las políticas de WhatsApp?</summary>
             <p>
-              Hyperion es una herramienta de automatización. Recomendamos usarla
-              de forma responsable y respetando las políticas y leyes aplicables
-              en tu país. Evitá spam y contenido no solicitado.
+              Hyperion es una herramienta de automatización para uso profesional.
+              Recomendamos usarla de forma responsable y respetando las políticas
+              de WhatsApp y las leyes aplicables en tu país. Evitá spam, listas
+              compradas y contenido no solicitado.
             </p>
           </details>
 
@@ -239,17 +254,27 @@
             <summary>¿Puedo usar múltiples PCs?</summary>
             <p>
               Sí, pero las sesiones de cada cuenta viven en la máquina donde
-              configuraste los workers. Para setups más complejos, hablamos 😉
+              configuraste los workers. Podés activar tu licencia en varias
+              instalaciones (según tu plan) y separar equipos por proyecto
+              o por cliente.
             </p>
           </details>
 
           <details class="faq-item">
-            <summary>¿Cómo se maneja la licencia?</summary>
+            <summary>¿Cómo se manejan las licencias y los planes?</summary>
             <p>
-              Creás tu cuenta desde la web, elegís un plan y obtenés tu licencia.
-              Después iniciás sesión en Hyperion Client con el mismo usuario y
-              el backend valida automáticamente tu plan, límites diarios y cantidad
-              de cuentas permitidas.
+              Creás tu cuenta desde la web, elegís un plan y generás una licencia.
+              Esa licencia se activa dentro de Hyperion Client (app de escritorio)
+              y el backend valida automáticamente:
+            </p>
+            <ul>
+              <li>✔ Cantidad máxima de cuentas por plan</li>
+              <li>✔ Mensajes diarios permitidos</li>
+              <li>✔ Si el warmup está habilitado o no</li>
+            </ul>
+            <p>
+              Podés ver tus planes y licencias desde el dashboard web y pedir
+              upgrades cuando te quede chico.
             </p>
           </details>
         </div>
@@ -274,3 +299,4 @@
   <script src="app.js" type="module"></script>
 </body>
 </html>
+
