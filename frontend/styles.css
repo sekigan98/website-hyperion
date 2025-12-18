@@ -348,6 +348,10 @@ img {
   text-align: center;
 }
 
+.pricing-card.pricing-lifetime {
+  grid-column: 2 / 3;      /* segunda columna en desktop */
+}
+
 /* GRID */
 
 .grid {
