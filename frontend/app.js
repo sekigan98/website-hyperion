@@ -1,7 +1,14 @@
 // frontend/app.js
 
-// 👉 Ahora apuntamos al backend Fastify
-const API_BASE = "http://localhost:3000";
+
+const isLocal =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1";
+
+const API_BASE = isLocal
+  ? "http://localhost:4000/api" // cuando desarrollás en local
+  : "https://website-hyperion.onrender.com/"; // URL de Render
+
 
 // Util simple
 function $(selector) {
@@ -347,3 +354,4 @@ document.addEventListener("DOMContentLoaded", () => {
   initDashboard();
   initLanding();
 });
+
