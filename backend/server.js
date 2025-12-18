@@ -7,8 +7,10 @@ const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const JWT_SECRET = process.env.JWT_SECRET || "super-secreto-hyperion-2025-199";
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998"; // para emitir licencias
+const JWT_SECRET =
+  process.env.JWT_SECRET || "super-secreto-hyperion-2025-1998";
+const ADMIN_API_KEY =
+  process.env.ADMIN_API_KEY || "hyperion-sekigan-1998"; // para emitir licencias
 
 app.use(cors());
 app.use(express.json());
@@ -16,7 +18,7 @@ app.use(express.json());
 // =========================
 // "DB" en memoria (demo)
 // =========================
-const users = [];   // { id, email, passwordHash, plan }
+const users = []; // { id, email, passwordHash, plan }
 const licenses = []; // { id, key, userId, planId, status, maxActivations, activations[], createdAt, expiresAt }
 
 // =========================
@@ -27,21 +29,24 @@ const PLANS = [
     id: "starter",
     name: "Starter",
     tag: "Gratis",
-    price: "$0",
+    price: "US$0",
+    price_suffix: "/ mes",
     highlight: false,
     cta: "Empezar gratis",
     features: [
       "1 cuenta de WhatsApp",
       "Campañas manuales básicas",
       "Validación local de contactos",
-      "Soporte estándar por email"
-    ]
+      "Soporte estándar por email",
+      "1 dispositivo instalado",
+    ],
   },
   {
     id: "pro",
     name: "Pro",
     tag: "Recomendado",
-    price: "$XX",
+    price: "US$39",
+    price_suffix: "/ mes",
     highlight: true,
     cta: "Probar Hyperion Pro",
     features: [
@@ -49,48 +54,86 @@ const PLANS = [
       "Campañas automáticas + avanzadas",
       "Warmup inteligente",
       "Stats avanzadas por cuenta",
-      "Soporte prioritario"
-    ]
+      "Soporte prioritario",
+      "Hasta 2 dispositivos instalados",
+    ],
   },
   {
     id: "agency",
     name: "Agency",
     tag: "Agencias",
-    price: "$XX",
+    price: "US$99",
+    price_suffix: "/ mes",
     highlight: false,
     cta: "Hablar con ventas",
     features: [
       "10+ cuentas de WhatsApp",
       "Warmup agresivo ajustable",
       "Soporte dedicado",
-      "Asistencia en onboarding y setup"
-    ]
-  }
+      "Asistencia en onboarding y setup",
+      "Hasta 3 dispositivos instalados",
+    ],
+  },
+  {
+    id: "lifetime",
+    name: "Lifetime",
+    tag: "Pago único",
+    price: "US$499",
+    price_suffix: "pago único",
+    highlight: false,
+    cta: "Comprar Lifetime",
+    features: [
+      "Hasta 10 cuentas de WhatsApp",
+      "Mensajes diarios casi ilimitados",
+      "Warmup completo habilitado",
+      "Sin vencimiento mensual",
+      "Hasta 5 dispositivos instalados",
+    ],
+  },
 ];
 
-// Límites técnicos por plan (lo que va a usar el cliente)
+// Límites técnicos por plan (lo que va a usar la app de escritorio)
 const PLAN_LIMITS = {
   starter: {
     maxAccounts: 1,
     maxWorkers: 1,
-    maxMessagesPerDay: 100,
-    warmupEnabled: false
+    maxMessagesPerDay: 30,
+    warmupEnabled: false,
+    maxDevices: 1, // 1 PC
   },
   pro: {
     maxAccounts: 5,
     maxWorkers: 5,
     maxMessagesPerDay: 800,
-    warmupEnabled: true
+    warmupEnabled: true,
+    maxDevices: 2, // 2 PCs
   },
   agency: {
     maxAccounts: 20,
     maxWorkers: 20,
     maxMessagesPerDay: 5000,
-    warmupEnabled: true
-  }
+    warmupEnabled: true,
+    maxDevices: 3, // 3 PCs
+  },
+  lifetime: {
+    maxAccounts: 10,
+    maxWorkers: 10,
+    maxMessagesPerDay: 50000,
+    warmupEnabled: true,
+    maxDevices: 5, // 5 PCs
+  },
 };
 
-const DEFAULT_MAX_ACTIVATIONS = 3;
+// Valor de fallback si por alguna razón no encontramos el plan
+const DEFAULT_MAX_ACTIVATIONS = 1;
+
+// Límite de activaciones por plan (cuántas PCs distintas por licencia)
+const PLAN_DEVICE_LIMIT = {
+  starter: 1,
+  pro: 2,
+  agency: 3,
+  lifetime: 5,
+};
 
 // =========================
 // Helpers
@@ -167,14 +210,14 @@ app.post("/api/auth/register", async (req, res) => {
       email,
       passwordHash,
       // Plan "virtual" hasta que compre licencia
-      plan: "pro_demo"
+      plan: "pro_demo",
     };
     users.push(user);
 
     const token = createToken(user);
     res.json({
       token,
-      user: { id: user.id, email: user.email, plan: user.plan }
+      user: { id: user.id, email: user.email, plan: user.plan },
     });
   } catch (err) {
     console.error("Error en /auth/register", err);
@@ -206,7 +249,7 @@ app.post("/api/auth/login", async (req, res) => {
     const token = createToken(user);
     res.json({
       token,
-      user: { id: user.id, email: user.email, plan: user.plan }
+      user: { id: user.id, email: user.email, plan: user.plan },
     });
   } catch (err) {
     console.error("Error en /auth/login", err);
@@ -232,7 +275,7 @@ app.get("/api/licenses/my", authMiddleware, (req, res) => {
     createdAt: l.createdAt,
     expiresAt: l.expiresAt,
     maxActivations: l.maxActivations,
-    activationsUsed: l.activations.length
+    activationsUsed: l.activations.length,
   }));
   res.json({ licenses: response });
 });
@@ -253,7 +296,7 @@ app.post("/api/checkout", authMiddleware, (req, res) => {
 
   res.json({
     ok: true,
-    redirectUrl: fakePaymentUrl
+    redirectUrl: fakePaymentUrl,
   });
 });
 
@@ -284,9 +327,41 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
 
   const key = generateLicenseKey(planId);
   const now = new Date();
+
+  // =========================
+  // Límite de dispositivos por plan
+  // =========================
+  const planMaxDevices = PLAN_DEVICE_LIMIT[planId] ?? DEFAULT_MAX_ACTIVATIONS;
+
+  const effectiveMaxActivations =
+    typeof maxActivations === "number" && maxActivations > 0
+      ? maxActivations // si lo forzás manualmente
+      : planMaxDevices; // si no, se usa el límite por plan
+
+  // =========================
+  // Vencimiento:
+  //  - planes mensuales => 30 días por defecto
+  //  - lifetime => sin vencimiento
+  // =========================
+  let effectiveExpiresInDays = expiresInDays;
+
+  if (
+    typeof effectiveExpiresInDays !== "number" ||
+    effectiveExpiresInDays <= 0
+  ) {
+    // si no se especifica nada:
+    if (planId === "lifetime") {
+      effectiveExpiresInDays = 0; // no vence
+    } else {
+      effectiveExpiresInDays = 30; // mensual
+    }
+  }
+
   let expiresAt = null;
-  if (typeof expiresInDays === "number" && expiresInDays > 0) {
-    expiresAt = new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
+  if (effectiveExpiresInDays > 0) {
+    expiresAt = new Date(
+      now.getTime() + effectiveExpiresInDays * 24 * 60 * 60 * 1000
+    );
   }
 
   const lic = {
@@ -295,10 +370,10 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
     userId: user.id,
     planId,
     status: "active",
-    maxActivations: maxActivations || DEFAULT_MAX_ACTIVATIONS,
+    maxActivations: effectiveMaxActivations,
     activations: [],
     createdAt: now.toISOString(),
-    expiresAt: expiresAt ? expiresAt.toISOString() : null
+    expiresAt: expiresAt ? expiresAt.toISOString() : null,
   };
 
   licenses.push(lic);
@@ -315,8 +390,8 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
       status: lic.status,
       createdAt: lic.createdAt,
       expiresAt: lic.expiresAt,
-      maxActivations: lic.maxActivations
-    }
+      maxActivations: lic.maxActivations,
+    },
   });
 });
 
@@ -338,14 +413,22 @@ app.post("/api/licenses/activate", async (req, res) => {
       return res.status(404).json({ error: "Licencia no encontrada" });
     }
 
+    // Si la licencia está expirada, la marcamos y podemos bajar el plan del usuario a starter (free)
+    if (license.expiresAt && new Date(license.expiresAt) < new Date()) {
+      license.status = "expired";
+
+      const user = users.find((u) => u.id === license.userId);
+      if (user) {
+        user.plan = "starter"; // pasa a free
+      }
+
+      return res.status(403).json({ error: "LICENCE_EXPIRED" });
+    }
+
     if (license.status !== "active") {
       return res
         .status(403)
         .json({ error: "LICENCE_INACTIVE", status: license.status });
-    }
-
-    if (license.expiresAt && new Date(license.expiresAt) < new Date()) {
-      return res.status(403).json({ error: "LICENCE_EXPIRED" });
     }
 
     // verificar activaciones anteriores
@@ -354,7 +437,10 @@ app.post("/api/licenses/activate", async (req, res) => {
     );
 
     if (!activation) {
-      if (license.activations.length >= (license.maxActivations || DEFAULT_MAX_ACTIVATIONS)) {
+      if (
+        license.activations.length >=
+        (license.maxActivations || DEFAULT_MAX_ACTIVATIONS)
+      ) {
         return res.status(403).json({ error: "MAX_INSTALLS_REACHED" });
       }
 
@@ -363,7 +449,7 @@ app.post("/api/licenses/activate", async (req, res) => {
         deviceName: deviceName || null,
         firstActivatedAt: new Date().toISOString(),
         lastSeenAt: new Date().toISOString(),
-        appVersion: appVersion || null
+        appVersion: appVersion || null,
       };
       license.activations.push(activation);
     } else {
@@ -372,7 +458,7 @@ app.post("/api/licenses/activate", async (req, res) => {
     }
 
     const plan = PLANS.find((p) => p.id === license.planId) || PLANS[0];
-    const limits =
+    const baseLimits =
       PLAN_LIMITS[license.planId] || PLAN_LIMITS["starter"];
 
     // Esta es la info que la APP va a guardar localmente
@@ -388,8 +474,11 @@ app.post("/api/licenses/activate", async (req, res) => {
         // máscara para mostrar en UI
         keyMasked: `${license.key.slice(0, 4)}-****-****`,
         // límites técnicos que tu backend dentro de la app va a usar
-        limits
-      }
+        limits: {
+          ...baseLimits,
+          maxDevices: license.maxActivations,
+        },
+      },
     });
   } catch (err) {
     console.error("Error en /api/licenses/activate", err);
