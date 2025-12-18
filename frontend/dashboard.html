@@ -4,17 +4,15 @@
   <meta charset="utf-8" />
   <title>Dashboard - Hyperion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Favicon: cohete solo -->
-  <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body class="dark-mode">
   <header class="site-header">
     <div class="container header-inner">
-         <a href="index.html" class="brand">
-        <!-- Logo largo -->
-        <img src="assets/hyperion-logo.png" alt="Hyperion" class="brand-logo" />
+      <a href="index.html" class="brand">
+        <img src="assets/icon.png" alt="Hyperion" class="brand-logo" />
+        <span class="brand-name">Hyperion</span>
       </a>
 
       <nav class="main-nav">
@@ -32,28 +30,43 @@
     <div class="container">
       <h1>Dashboard</h1>
       <p class="muted">
-        Acá vas a poder gestionar tu licencia, ver tu plan actual y descargar la última versión del cliente.
+        Desde acá gestionás tu cuenta, ves tu plan actual y descargás la última versión de Hyperion Client.
+        Más adelante también vas a poder ver y administrar tus licencias activas.
       </p>
 
       <div class="grid grid-2">
         <section class="card">
           <h2>Mi cuenta</h2>
-          <p><strong>Email:</strong> <span id="user-email">-</span></p>
-          <p><strong>Plan actual:</strong> <span id="user-plan">Pro (demo)</span></p>
+          <p><strong>Email:</strong> <span id="user-email">Cargando...</span></p>
+          <p><strong>Plan actual:</strong> <span id="user-plan">Cargando...</span></p>
+          <p class="muted small">
+            Tu plan determina cuántas cuentas podés conectar, el límite de mensajes diarios
+            y si el warmup está habilitado. Si necesitás un plan especial para agencia,
+            escribinos y lo vemos.
+          </p>
         </section>
 
         <section class="card">
           <h2>Descargas</h2>
-          <p class="muted">Descargá la última versión de Hyperion Client.</p>
+          <p class="muted">
+            Descargá la última versión del cliente de escritorio para Windows.
+            Para usar todas las funciones necesitás tener una licencia activa asociada a tu cuenta.
+          </p>
           <a href="#" class="btn btn-primary btn-block">
             ⬇ Descargar Hyperion para Windows
           </a>
-          <small class="muted">Contactá soporte para otras plataformas.</small>
+          <small class="muted">
+            Contactá soporte para builds de macOS o Linux, o para integraciones personalizadas.
+          </small>
         </section>
       </div>
 
       <section class="card" style="margin-top:2rem;">
         <h2>Planes disponibles</h2>
+        <p class="muted">
+          Estos son los planes que ofrece Hyperion. Podés cambiar de plan cuando tus campañas
+          crezcan o necesites más cuentas / mensajes diarios.
+        </p>
         <div id="dashboard-plans" class="pricing-inline"></div>
       </section>
     </div>
@@ -71,3 +84,4 @@
   <script src="app.js" type="module"></script>
 </body>
 </html>
+
