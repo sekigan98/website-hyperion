@@ -4,8 +4,9 @@
   "description": "Backend simple para website de Hyperion (auth + planes)",
   "main": "server.js",
   "scripts": {
-    "dev": "node server.js"
-  },
+  "start": "node server.js",
+  "dev": "node server.js"
+},
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
