@@ -7,7 +7,7 @@ const isLocal =
 
 const API_BASE = isLocal
   ? "http://localhost:4000/api" // cuando desarrollás en local
-  : "https://website-hyperion.onrender.com/"; // URL de Render
+  : "https://website-hyperion.onrender.com/api"; // URL de Render
 
 
 // Util simple
