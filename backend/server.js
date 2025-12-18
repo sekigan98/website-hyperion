@@ -7,8 +7,8 @@ const crypto = require("crypto");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const JWT_SECRET = process.env.JWT_SECRET || "hyperion-demo-secret";
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "dev-admin-key"; // para emitir licencias
+const JWT_SECRET = process.env.JWT_SECRET || "super-secreto-hyperion-2025-199";
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998"; // para emitir licencias
 
 app.use(cors());
 app.use(express.json());
