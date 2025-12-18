@@ -1,6 +1,6 @@
 // frontend/app.js
 
-
+// Detectar si estamos en local o en producción (Netlify + Render)
 const isLocal =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1";
@@ -8,7 +8,6 @@ const isLocal =
 const API_BASE = isLocal
   ? "http://localhost:4000/api" // cuando desarrollás en local
   : "https://website-hyperion.onrender.com/api"; // URL de Render
-
 
 // Util simple
 function $(selector) {
@@ -139,7 +138,7 @@ function initAuthPage() {
         return;
       }
 
-      // Fastify login devuelve { ok, token, user }
+      // Fastify/Express login devuelve { ok, token, user }
       setSession(data.token, data.user);
       window.location.href = "dashboard.html";
     } catch (err) {
@@ -163,7 +162,7 @@ function initAuthPage() {
     };
 
     try {
-      // 1) Registrar usuario en Fastify (/auth/register)
+      // 1) Registrar usuario en backend (/auth/register)
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -202,7 +201,8 @@ function initAuthPage() {
       }
     } catch (err) {
       registerError.hidden = false;
-      registerError.textContent = "No se pudo conectar con el servidor.";
+      registerError.textContent =
+        "No se pudo conectar con el servidor.";
     }
   });
 }
