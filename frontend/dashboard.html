@@ -4,11 +4,10 @@
   <meta charset="utf-8" />
   <title>Dashboard - Hyperion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
- <!-- Favicon: cohete solo -->
+  <!-- Favicon: cohete solo -->
   <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
-</head>
 </head>
 <body class="dark-mode">
   <header class="site-header">
@@ -38,6 +37,7 @@
       </p>
 
       <div class="grid grid-2">
+        <!-- MI CUENTA -->
         <section class="card">
           <h2>Mi cuenta</h2>
           <p><strong>Email:</strong> <span id="user-email">Cargando...</span></p>
@@ -47,8 +47,41 @@
             y si el warmup está habilitado. Si necesitás un plan especial para agencia,
             escribinos y lo vemos.
           </p>
+
+          <hr style="margin:1rem 0; opacity:0.3;">
+
+          <h3>Cambiar contraseña</h3>
+          <form id="change-password-form" class="auth-form">
+            <label>
+              Contraseña actual
+              <input
+                type="password"
+                name="currentPassword"
+                required
+                autocomplete="current-password"
+              />
+            </label>
+
+            <label>
+              Nueva contraseña
+              <input
+                type="password"
+                name="newPassword"
+                required
+                minlength="6"
+                autocomplete="new-password"
+              />
+            </label>
+
+            <button type="submit" class="btn btn-outline btn-block">
+              Actualizar contraseña
+            </button>
+
+            <p id="change-password-msg" class="form-error" hidden></p>
+          </form>
         </section>
 
+        <!-- DESCARGAS -->
         <section class="card">
           <h2>Descargas</h2>
           <p class="muted">
@@ -64,6 +97,7 @@
         </section>
       </div>
 
+      <!-- PLANES -->
       <section class="card" style="margin-top:2rem;">
         <h2>Planes disponibles</h2>
         <p class="muted">
@@ -87,4 +121,3 @@
   <script src="app.js" type="module"></script>
 </body>
 </html>
-
