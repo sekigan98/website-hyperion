@@ -65,19 +65,29 @@ function authHeaders(token) {
 function formatPlanLabel(planKey) {
   if (!planKey) return "Sin plan";
   const k = String(planKey).toLowerCase();
+
   switch (k) {
-    case "trial":
-      return "Trial (demo)";
+    case "free":
+      return "Free";
+    case "starter":
+      return "Starter";
     case "basic":
       return "Básico";
+    case "trial":
+      return "Trial (demo)";
     case "entrepreneur":
     case "emprendedor":
       return "Emprendedor";
     case "pro":
       return "Pro";
+    case "pro_demo":
+      return "Pro (demo)";
+    case "agency":
+      return "Agency";
     case "lifetime":
       return "Lifetime";
     default:
+      // por si en el futuro agregás otros
       return planKey;
   }
 }
@@ -138,7 +148,7 @@ function initAuthPage() {
         return;
       }
 
-      // Fastify/Express login devuelve { ok, token, user }
+      // login devuelve { token, user }
       setSession(data.token, data.user);
       window.location.href = "dashboard.html";
     } catch (err) {
@@ -215,6 +225,8 @@ function initDashboard() {
   const emailEl = $("#user-email");
   const planEl = $("#user-plan");
   const plansContainer = $("#dashboard-plans");
+  const changePassForm = $("#change-password-form");
+  const changePassMsg = $("#change-password-msg");
 
   if (!logoutBtn) return; // no estamos en dashboard
 
@@ -271,6 +283,67 @@ function initDashboard() {
       window.location.href = "login.html";
     }
   })();
+
+  // Cambio de contraseña
+  if (changePassForm) {
+    changePassForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!token) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      if (changePassMsg) {
+        changePassMsg.hidden = true;
+        changePassMsg.textContent = "";
+        changePassMsg.style.color = ""; // reset
+      }
+
+      const formData = new FormData(changePassForm);
+      const payload = {
+        currentPassword: formData.get("currentPassword"),
+        newPassword: formData.get("newPassword"),
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/auth/change-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders(token),
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || data.ok === false) {
+          if (changePassMsg) {
+            changePassMsg.hidden = false;
+            changePassMsg.style.color = ""; // usa rojo de .form-error
+            changePassMsg.textContent =
+              data.error || "No se pudo cambiar la contraseña.";
+          }
+          return;
+        }
+
+        if (changePassMsg) {
+          changePassMsg.hidden = false;
+          changePassMsg.style.color = "#22c55e"; // verde éxito
+          changePassMsg.textContent = "Contraseña actualizada correctamente.";
+        }
+        changePassForm.reset();
+      } catch (err) {
+        console.error("Error cambiando contraseña", err);
+        if (changePassMsg) {
+          changePassMsg.hidden = false;
+          changePassMsg.style.color = ""; // rojo
+          changePassMsg.textContent =
+            "Error de conexión. Intentá de nuevo más tarde.";
+        }
+      }
+    });
+  }
 
   // Pedir planes al backend (público)
   (async () => {
@@ -354,4 +427,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initDashboard();
   initLanding();
 });
+
 
