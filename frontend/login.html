@@ -4,20 +4,18 @@
   <meta charset="utf-8" />
   <title>Ingresar - Hyperion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
- <!-- Favicon: cohete solo -->
+  <!-- Favicon: cohete solo -->
   <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
-</head>
 <body class="dark-mode auth-body">
   <header class="site-header minimal">
     <div class="container header-inner">
-   <a href="index.html" class="brand">
+      <a href="index.html" class="brand">
         <!-- Logo largo -->
         <img src="assets/hyperion-logo.png" alt="Hyperion" class="brand-logo" />
       </a>
-
     </div>
   </header>
 
@@ -39,6 +37,16 @@
           Contraseña
           <input type="password" name="password" required autocomplete="current-password" />
         </label>
+
+        <p class="muted small" style="margin-top:0.1rem;">
+          <a
+            id="forgot-password-link"
+            href="mailto:soporte@hyperion.app?subject=Olvid%C3%A9%20mi%20contrase%C3%B1a&body=Hola%2C%20olvid%C3%A9%20mi%20contrase%C3%B1a%20de%20Hyperion.%20Mi%20email%20es%3A%20"
+          >
+            ¿Olvidaste tu contraseña?
+          </a>
+          <span> (por ahora te ayudamos por email).</span>
+        </p>
 
         <button type="submit" class="btn btn-primary btn-block">
           Ingresar
