@@ -284,7 +284,7 @@ function initDashboard() {
     }
   })();
 
-  // Cambio de contraseña
+  // Cambio de contraseña (si agregás el form en dashboard.html)
   if (changePassForm) {
     changePassForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -320,7 +320,7 @@ function initDashboard() {
         if (!res.ok || data.ok === false) {
           if (changePassMsg) {
             changePassMsg.hidden = false;
-            changePassMsg.style.color = ""; // usa rojo de .form-error
+            changePassMsg.style.color = ""; // usa rojo de .form-error si existe
             changePassMsg.textContent =
               data.error || "No se pudo cambiar la contraseña.";
           }
@@ -337,7 +337,7 @@ function initDashboard() {
         console.error("Error cambiando contraseña", err);
         if (changePassMsg) {
           changePassMsg.hidden = false;
-          changePassMsg.style.color = ""; // rojo
+          changePassMsg.style.color = ""; // rojo por CSS
           changePassMsg.textContent =
             "Error de conexión. Intentá de nuevo más tarde.";
         }
@@ -427,5 +427,4 @@ document.addEventListener("DOMContentLoaded", () => {
   initDashboard();
   initLanding();
 });
-
 
