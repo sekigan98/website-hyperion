@@ -348,10 +348,6 @@ img {
   text-align: center;
 }
 
-.pricing-card.pricing-lifetime {
-  grid-column: 2 / 3;      /* segunda columna en desktop */
-}
-
 /* GRID */
 
 .grid {
@@ -449,6 +445,11 @@ img {
   border-color: rgba(177, 22, 249, 0.8);
   box-shadow: 0 25px 70px rgba(249, 115, 22, 0.35);
   transform: translateY(-4px);
+}
+
+/* Lifetime centrado en desktop */
+.pricing-card.pricing-lifetime {
+  grid-column: 2 / 3;      /* segunda columna en desktop */
 }
 
 /* FAQ */
@@ -601,6 +602,72 @@ img {
   background: rgba(15, 23, 42, 0.8);
 }
 
+/* Licencias en dashboard */
+
+.licenses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.license-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  background: rgba(15, 23, 42, 0.9);
+  font-size: 0.83rem;
+}
+
+.license-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.license-plan {
+  font-weight: 600;
+}
+
+.license-key {
+  color: var(--text-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.license-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
+  align-items: center;
+}
+
+.license-status-pill {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.license-status-active {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.license-status-expired,
+.license-status-revoked {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.license-activations,
+.license-expiry {
+  color: var(--text-soft);
+}
+
 /* RESPONSIVE */
 
 @media (max-width: 900px) {
@@ -635,5 +702,9 @@ img {
   .auth-card {
     margin-inline: 0.8rem;
   }
-}
 
+  /* Lifetime en mobile: que no fuerce columna */
+  .pricing-card.pricing-lifetime {
+    grid-column: auto;
+  }
+}
