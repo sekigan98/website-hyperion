@@ -227,6 +227,7 @@ function initDashboard() {
   const plansContainer = $("#dashboard-plans");
   const changePassForm = $("#change-password-form");
   const changePassMsg = $("#change-password-msg");
+  const licensesContainer = $("#licenses-list");
 
   if (!logoutBtn) return; // no estamos en dashboard
 
@@ -345,13 +346,91 @@ function initDashboard() {
     });
   }
 
+  // Cargar licencias del usuario
+  (async () => {
+    if (!licensesContainer) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/licenses/my`, {
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(token),
+        },
+      });
+
+      if (!res.ok) {
+        licensesContainer.innerHTML =
+          '<p class="muted small">No se pudieron cargar tus licencias.</p>';
+        return;
+      }
+
+      const data = await res.json();
+      const list = Array.isArray(data.licenses) ? data.licenses : [];
+
+      if (!list.length) {
+        licensesContainer.innerHTML =
+          '<p class="muted small">Todavía no tenés licencias emitidas. Una vez que compres un plan, vas a ver la licencia acá.</p>';
+        return;
+      }
+
+      licensesContainer.innerHTML = "";
+
+      list.forEach((lic) => {
+        const item = document.createElement("div");
+        item.className = "license-item";
+
+        const planLabel = formatPlanLabel(lic.planId);
+        const status = String(lic.status || "").toLowerCase();
+        let statusLabel = status || "desconocido";
+
+        if (status === "active") statusLabel = "Activa";
+        else if (status === "expired") statusLabel = "Vencida";
+        else if (status === "revoked") statusLabel = "Revocada";
+
+        const activationsUsed = lic.activationsUsed || 0;
+        const maxActivations =
+          typeof lic.maxActivations === "number"
+            ? lic.maxActivations
+            : 0;
+
+        const expiryText = lic.expiresAt
+          ? `Vence: ${new Date(lic.expiresAt).toLocaleDateString()}`
+          : "Sin vencimiento";
+
+        item.innerHTML = `
+          <div class="license-main">
+            <div class="license-plan">${planLabel}</div>
+            <div class="license-key">${lic.keyMasked || "****-****-****"}</div>
+          </div>
+          <div class="license-meta">
+            <span class="license-status-pill license-status-${status}">
+              ${statusLabel}
+            </span>
+            <span class="license-activations">
+              ${activationsUsed}/${maxActivations} instalaciones
+            </span>
+            <span class="license-expiry">
+              ${expiryText}
+            </span>
+          </div>
+        `;
+
+        licensesContainer.appendChild(item);
+      });
+    } catch (err) {
+      console.error("Error cargando licencias", err);
+      licensesContainer.innerHTML =
+        '<p class="muted small">No se pudieron cargar tus licencias.</p>';
+    }
+  })();
+
   // Pedir planes al backend (público)
   (async () => {
     try {
       const res = await fetch(`${API_BASE}/plans`);
-      if (!res.ok) return;
+      if (!res.ok || !plansContainer) return;
       const data = await res.json();
-      if (!Array.isArray(data.plans) || !plansContainer) return;
+      if (!Array.isArray(data.plans)) return;
 
       plansContainer.innerHTML = "";
       data.plans.forEach((p) => {
@@ -414,7 +493,7 @@ function initLanding() {
         cardsContainer.appendChild(article);
       });
     } catch (_) {
-      // si falla, quedan los 3 planes hardcodeados del HTML
+      // si falla, quedan los 4 planes hardcodeados del HTML
     }
   })();
 }
@@ -427,4 +506,3 @@ document.addEventListener("DOMContentLoaded", () => {
   initDashboard();
   initLanding();
 });
-
