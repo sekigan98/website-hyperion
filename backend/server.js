@@ -317,10 +317,11 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
     if (String(newPassword).length < 6) {
       return res
         .status(400)
-        .json({ error: "La nueva contraseña debe tener al menos 6 caracteres" });
+        .json({
+          error: "La nueva contraseña debe tener al menos 6 caracteres",
+        });
     }
 
-    // buscamos al usuario en DB
     const user = db
       .prepare("SELECT * FROM users WHERE id = ?")
       .get(req.user.id);
@@ -329,13 +330,13 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    // comparamos la contraseña actual
     const ok = await bcrypt.compare(currentPassword, user.password_hash);
     if (!ok) {
-      return res.status(400).json({ error: "Contraseña actual incorrecta" });
+      return res
+        .status(400)
+        .json({ error: "Contraseña actual incorrecta" });
     }
 
-    // generamos nuevo hash
     const newHash = await bcrypt.hash(newPassword, 10);
 
     db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
@@ -350,13 +351,25 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
   }
 });
 
-
-
 // =========================
 // Rutas protegidas (usuario)
 // =========================
 app.get("/api/me", authMiddleware, (req, res) => {
-  res.json({ user: req.user });
+  try {
+    // Siempre leemos el usuario actual desde la DB
+    const user = db
+      .prepare("SELECT id, email, plan FROM users WHERE id = ?")
+      .get(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error("Error en /api/me", err);
+    res.status(500).json({ error: "Error interno" });
+  }
 });
 
 // Lista licencias del usuario logueado (para dashboard web)
