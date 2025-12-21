@@ -63,7 +63,8 @@ const PLANS = [
     id: "starter",
     name: "Starter",
     tag: "Gratis",
-    price: "$0",
+    price: "U$D 0",
+    price_suffix: "/ mes",
     highlight: false,
     cta: "Empezar gratis",
     features: [
@@ -78,7 +79,8 @@ const PLANS = [
     id: "pro",
     name: "Pro",
     tag: "Recomendado",
-    price: "$19",
+    price: "U$D 19",
+    price_suffix: "/ mes",
     highlight: true,
     cta: "Probar Hyperion Pro",
     features: [
@@ -94,7 +96,8 @@ const PLANS = [
     id: "lifetime",
     name: "Lifetime",
     tag: "Lifetime",
-    price: "$499 (único pago)",
+    price: "U$D 499",
+    price_suffix: "pago único",
     highlight: false,
     cta: "Comprar licencia Lifetime",
     features: [
@@ -109,7 +112,8 @@ const PLANS = [
     id: "agency",
     name: "Agency",
     tag: "Agencias",
-    price: "$49",
+    price: "U$D 49",
+    price_suffix: "/ mes",
     highlight: false,
     cta: "Hablar con ventas",
     features: [
@@ -315,11 +319,9 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
     }
 
     if (String(newPassword).length < 6) {
-      return res
-        .status(400)
-        .json({
-          error: "La nueva contraseña debe tener al menos 6 caracteres",
-        });
+      return res.status(400).json({
+        error: "La nueva contraseña debe tener al menos 6 caracteres",
+      });
     }
 
     const user = db
@@ -491,7 +493,7 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
         expiresAt ? expiresAt.toISOString() : null
       );
 
-    // opcional: actualizar plan "principal" del user
+    // actualizar plan "principal" del user
     db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(planId, user.id);
 
     const lic = db
