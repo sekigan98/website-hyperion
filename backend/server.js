@@ -7,18 +7,15 @@ const crypto = require("crypto");
 const db = require("./db");
 
 const app = express();
+app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 4000;
-const JWT_SECRET =
-  process.env.JWT_SECRET || "super-secreto-hyperion-2025-1998";
-const ADMIN_API_KEY =
-  process.env.ADMIN_API_KEY || "hyperion-sekigan-1998"; // para emitir licencias
 
-app.use(cors());
-app.use(express.json());
+// ⚠️ En producción: SI O SI setearlos como env vars (no hardcode)
+const JWT_SECRET = process.env.JWT_SECRET || "super-secreto-hyperion-2025-1998";
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998";
 
-// =========================
-// DB: schema
-// =========================
+// DB schema (se crea al boot)
 db.exec(`
 PRAGMA foreign_keys = ON;
 
@@ -63,7 +60,7 @@ const PLANS = [
     id: "starter",
     name: "Starter",
     tag: "Gratis",
-    price: "U$D 0",
+    price: "$0",
     price_suffix: "/ mes",
     highlight: false,
     cta: "Empezar gratis",
@@ -79,7 +76,7 @@ const PLANS = [
     id: "pro",
     name: "Pro",
     tag: "Recomendado",
-    price: "U$D 0",
+    price: "$0",
     price_suffix: "/ mes",
     highlight: true,
     cta: "Probar Hyperion Pro",
@@ -95,8 +92,8 @@ const PLANS = [
   {
     id: "lifetime",
     name: "Lifetime",
-    tag: "Lifetime",
-    price: "U$D 0",
+    tag: "Pago único",
+    price: "$0",
     price_suffix: "pago único",
     highlight: false,
     cta: "Comprar licencia Lifetime",
@@ -112,7 +109,7 @@ const PLANS = [
     id: "agency",
     name: "Agency",
     tag: "Agencias",
-    price: "U$D 0",
+    price: "$0",
     price_suffix: "/ mes",
     highlight: false,
     cta: "Hablar con ventas",
@@ -126,58 +123,45 @@ const PLANS = [
   },
 ];
 
-// Límites técnicos por plan (lo que va a usar la APP)
 const PLAN_LIMITS = {
-  starter: {
-    maxAccounts: 1,
-    maxWorkers: 1,
-    maxMessagesPerDay: 30,
-    warmupEnabled: false,
-    maxDevices: 1,
-  },
-  pro: {
-    maxAccounts: 5,
-    maxWorkers: 5,
-    maxMessagesPerDay: 800,
-    warmupEnabled: true,
-    maxDevices: 2,
-  },
-  lifetime: {
-    maxAccounts: 10,
-    maxWorkers: 10,
-    maxMessagesPerDay: 50000,
-    warmupEnabled: true,
-    maxDevices: 5,
-  },
-  agency: {
-    maxAccounts: 20,
-    maxWorkers: 20,
-    maxMessagesPerDay: 5000,
-    warmupEnabled: true,
-    maxDevices: 3,
-  },
+  starter: { maxAccounts: 1, maxWorkers: 1, maxMessagesPerDay: 30, warmupEnabled: false, maxDevices: 1 },
+  pro: { maxAccounts: 5, maxWorkers: 5, maxMessagesPerDay: 800, warmupEnabled: true, maxDevices: 2 },
+  lifetime: { maxAccounts: 10, maxWorkers: 10, maxMessagesPerDay: 50000, warmupEnabled: true, maxDevices: 5 },
+  agency: { maxAccounts: 20, maxWorkers: 20, maxMessagesPerDay: 5000, warmupEnabled: true, maxDevices: 3 },
 };
 
-// Cuántas PCs distintas permite cada plan por defecto
-const PLAN_DEVICE_LIMIT = {
-  starter: 1,
-  pro: 2,
-  lifetime: 5,
-  agency: 3,
-};
-
+const PLAN_DEVICE_LIMIT = { starter: 1, pro: 2, lifetime: 5, agency: 3 };
 const DEFAULT_MAX_ACTIVATIONS = 1;
+
+// =========================
+// CORS (configurable)
+// =========================
+function parseCorsOrigins() {
+  const raw = String(process.env.CORS_ORIGINS || "").trim();
+  if (!raw) return null; // null => permite todo (para arranque rápido)
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+const allowList = parseCorsOrigins();
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!allowList) return cb(null, true);
+      if (!origin) return cb(null, true); // curl/postman
+      const ok = allowList.includes(origin);
+      return cb(ok ? null : new Error("CORS blocked"), ok);
+    },
+  })
+);
+
+app.use(express.json());
 
 // =========================
 // Helpers
 // =========================
 function createToken(user) {
   return jwt.sign(
-    {
-      id: user.id,
-      email: user.email,
-      plan: user.plan || "starter",
-    },
+    { id: user.id, email: user.email, plan: user.plan || "starter" },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -192,7 +176,7 @@ function authMiddleware(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
     next();
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: "Token inválido o expirado" });
   }
 }
@@ -206,66 +190,107 @@ function requireAdmin(req, res, next) {
 }
 
 function generateLicenseKey(planId = "pro") {
-  const segment = () =>
-    crypto.randomBytes(3).toString("hex").toUpperCase();
-  const prefix = "HYP";
-  return `${prefix}-${planId.toUpperCase()}-${segment()}-${segment()}`;
+  const segment = () => crypto.randomBytes(3).toString("hex").toUpperCase();
+  return `HYP-${String(planId).toUpperCase()}-${segment()}-${segment()}`;
 }
+
+function getPlanLimits(planId) {
+  return PLAN_LIMITS[planId] || PLAN_LIMITS.starter;
+}
+
+function enrichUserForClient(userRow) {
+  const planId = userRow.plan || "starter";
+  const limits = getPlanLimits(planId);
+  return {
+    id: userRow.id,
+    email: userRow.email,
+    plan: planId,
+
+    // snake_case para compat con tu electron/license.js
+    max_accounts: limits.maxAccounts,
+    messages_per_day: limits.maxMessagesPerDay,
+    warmup_enabled: !!limits.warmupEnabled,
+    max_workers: limits.maxWorkers,
+    max_devices: limits.maxDevices,
+  };
+}
+
+// =========================
+// Update policy: /api/app/version
+// (lo usa Electron main.js)
+// =========================
+function semverParts(v) {
+  const core = String(v || "0.0.0").trim().split(/[+-]/)[0];
+  const p = core.split(".").map((x) => parseInt(x, 10));
+  while (p.length < 3) p.push(0);
+  return p.slice(0, 3).map((n) => (Number.isFinite(n) ? n : 0));
+}
+function cmpSemver(a, b) {
+  const A = semverParts(a);
+  const B = semverParts(b);
+  for (let i = 0; i < 3; i++) {
+    if (A[i] < B[i]) return -1;
+    if (A[i] > B[i]) return 1;
+  }
+  return 0;
+}
+
+app.get("/api/app/version", (req, res) => {
+  const current = String(req.query.current || "0.0.0");
+  const minVersion = String(process.env.HYPERION_MIN_VERSION || "0.0.0");
+  const latest = String(process.env.HYPERION_LATEST_VERSION || minVersion);
+  const downloadUrl = String(process.env.HYPERION_DOWNLOAD_URL || "");
+  const notes = String(process.env.HYPERION_RELEASE_NOTES || "");
+
+  // Siempre respondemos ok:true, Electron decide si bloquea comparando current vs min_version
+  // (igual dejamos la info por si querés debug)
+  res.json({
+    ok: true,
+    current,
+    min_version: minVersion,
+    latest,
+    download_url: downloadUrl,
+    notes,
+    // hint:
+    update_required: cmpSemver(current, minVersion) < 0,
+  });
+});
 
 // =========================
 // Rutas públicas
 // =========================
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
-});
+app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/plans", (_req, res) => res.json({ plans: PLANS }));
 
-app.get("/api/plans", (_req, res) => {
-  res.json({ plans: PLANS });
-});
-
-// -------------------------
+// =========================
 // Auth: registro / login
-// -------------------------
+// =========================
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Email y contraseña son requeridos" });
+      return res.status(400).json({ error: "Email y contraseña son requeridos" });
     }
 
     const emailNorm = String(email).trim().toLowerCase();
-    const existing = db
-      .prepare("SELECT id FROM users WHERE email = ?")
-      .get(emailNorm);
-    if (existing) {
-      return res
-        .status(400)
-        .json({ error: "Ese email ya está registrado" });
-    }
+    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(emailNorm);
+    if (existing) return res.status(400).json({ error: "Ese email ya está registrado" });
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const plan = "starter"; // plan base por defecto
+    const plan = "starter";
 
     const info = db
-      .prepare(
-        "INSERT INTO users (email, password_hash, plan) VALUES (?,?,?)"
-      )
+      .prepare("INSERT INTO users (email, password_hash, plan) VALUES (?,?,?)")
       .run(emailNorm, passwordHash, plan);
 
-    const user = db
-      .prepare("SELECT id, email, plan FROM users WHERE id = ?")
-      .get(info.lastInsertRowid);
+    const userRow = db.prepare("SELECT id, email, plan FROM users WHERE id = ?").get(info.lastInsertRowid);
+    const user = enrichUserForClient(userRow);
+    const token = createToken(userRow);
 
-    const token = createToken(user);
-    res.json({
-      token,
-      user,
-    });
+    return res.json({ token, user });
   } catch (err) {
     console.error("Error en /api/auth/register", err);
-    res.status(500).json({ error: "Error interno" });
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 
@@ -273,78 +298,44 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
     if (!email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Email y contraseña son requeridos" });
+      return res.status(400).json({ error: "Email y contraseña son requeridos" });
     }
 
     const emailNorm = String(email).trim().toLowerCase();
-    const user = db
-      .prepare("SELECT * FROM users WHERE email = ?")
-      .get(emailNorm);
+    const userRow = db.prepare("SELECT * FROM users WHERE email = ?").get(emailNorm);
+    if (!userRow) return res.status(400).json({ error: "Credenciales inválidas" });
 
-    if (!user) {
-      return res.status(400).json({ error: "Credenciales inválidas" });
-    }
+    const ok = await bcrypt.compare(password, userRow.password_hash);
+    if (!ok) return res.status(400).json({ error: "Credenciales inválidas" });
 
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) {
-      return res.status(400).json({ error: "Credenciales inválidas" });
-    }
+    const token = createToken(userRow);
+    const user = enrichUserForClient(userRow);
 
-    const token = createToken(user);
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        plan: user.plan,
-      },
-    });
+    return res.json({ token, user });
   } catch (err) {
     console.error("Error en /api/auth/login", err);
-    res.status(500).json({ error: "Error interno" });
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 
-// Cambiar contraseña (usuario logueado)
 app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body || {};
-
     if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ error: "Contraseña actual y nueva son requeridas" });
+      return res.status(400).json({ error: "Contraseña actual y nueva son requeridas" });
     }
-
     if (String(newPassword).length < 6) {
-      return res.status(400).json({
-        error: "La nueva contraseña debe tener al menos 6 caracteres",
-      });
+      return res.status(400).json({ error: "La nueva contraseña debe tener al menos 6 caracteres" });
     }
 
-    const user = db
-      .prepare("SELECT * FROM users WHERE id = ?")
-      .get(req.user.id);
+    const userRow = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
+    if (!userRow) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    if (!user) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-    const ok = await bcrypt.compare(currentPassword, user.password_hash);
-    if (!ok) {
-      return res
-        .status(400)
-        .json({ error: "Contraseña actual incorrecta" });
-    }
+    const ok = await bcrypt.compare(currentPassword, userRow.password_hash);
+    if (!ok) return res.status(400).json({ error: "Contraseña actual incorrecta" });
 
     const newHash = await bcrypt.hash(newPassword, 10);
-
-    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(
-      newHash,
-      user.id
-    );
+    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(newHash, userRow.id);
 
     return res.json({ ok: true });
   } catch (err) {
@@ -354,38 +345,26 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
 });
 
 // =========================
-// Rutas protegidas (usuario)
+// Usuario logueado
 // =========================
 app.get("/api/me", authMiddleware, (req, res) => {
   try {
-    // Siempre leemos el usuario actual desde la DB
-    const user = db
-      .prepare("SELECT id, email, plan FROM users WHERE id = ?")
-      .get(req.user.id);
-
-    if (!user) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
-
-    res.json({ user });
+    const userRow = db.prepare("SELECT id, email, plan FROM users WHERE id = ?").get(req.user.id);
+    if (!userRow) return res.status(404).json({ error: "Usuario no encontrado" });
+    return res.json({ user: enrichUserForClient(userRow) });
   } catch (err) {
     console.error("Error en /api/me", err);
-    res.status(500).json({ error: "Error interno" });
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 
-// Lista licencias del usuario logueado (para dashboard web)
 app.get("/api/licenses/my", authMiddleware, (req, res) => {
   try {
-    const userId = req.user.id;
-
     const rows = db
       .prepare("SELECT * FROM licenses WHERE user_id = ? ORDER BY id DESC")
-      .all(userId);
+      .all(req.user.id);
 
-    const stmtCount = db.prepare(
-      "SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?"
-    );
+    const stmtCount = db.prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?");
 
     const response = rows.map((l) => {
       const activationsUsed = stmtCount.get(l.id).n;
@@ -401,106 +380,54 @@ app.get("/api/licenses/my", authMiddleware, (req, res) => {
       };
     });
 
-    res.json({ licenses: response });
+    return res.json({ licenses: response });
   } catch (err) {
     console.error("Error en /api/licenses/my", err);
-    res.status(500).json({ error: "Error interno" });
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 
-// Checkout (stub para futuro integrarlo con MP/Stripe)
-app.post("/api/checkout", authMiddleware, (req, res) => {
-  const { planId, method } = req.body || {};
-
-  if (!planId || !method) {
-    return res
-      .status(400)
-      .json({ error: "planId y método de pago son requeridos" });
-  }
-
-  const fakePaymentUrl = `https://ejemplo-pago.com/checkout?plan=${encodeURIComponent(
-    planId
-  )}&method=${encodeURIComponent(method)}`;
-
-  res.json({
-    ok: true,
-    redirectUrl: fakePaymentUrl,
-  });
-});
-
 // =========================
-// Rutas de licencias (admin)
+// Admin: emitir licencia
 // =========================
-
-// Emitir licencia para un usuario (ej: llamado desde un panel interno o webhook de pago)
 app.post("/api/licenses/issue", requireAdmin, (req, res) => {
   try {
     const { email, planId, maxActivations, expiresInDays } = req.body || {};
     if (!email || !planId) {
-      return res
-        .status(400)
-        .json({ error: "email y planId son requeridos" });
+      return res.status(400).json({ error: "email y planId son requeridos" });
     }
 
     const plan = PLANS.find((p) => p.id === planId);
-    if (!plan) {
-      return res.status(400).json({ error: "planId inválido" });
-    }
+    if (!plan) return res.status(400).json({ error: "planId inválido" });
 
     const emailNorm = String(email).trim().toLowerCase();
-    const user = db
-      .prepare("SELECT * FROM users WHERE email = ?")
-      .get(emailNorm);
-
-    if (!user) {
-      return res.status(404).json({ error: "Usuario no encontrado" });
-    }
+    const user = db.prepare("SELECT * FROM users WHERE email = ?").get(emailNorm);
+    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
     const key = generateLicenseKey(planId);
     const now = new Date();
-    let expiresAt = null;
 
-    // mensual salvo lifetime (0 días => sin expiración)
-    if (
-      typeof expiresInDays === "number" &&
-      expiresInDays > 0 &&
-      planId !== "lifetime"
-    ) {
-      expiresAt = new Date(
-        now.getTime() + expiresInDays * 24 * 60 * 60 * 1000
-      );
+    let expiresAt = null;
+    if (typeof expiresInDays === "number" && expiresInDays > 0 && planId !== "lifetime") {
+      expiresAt = new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
     }
 
     const maxAct =
-      maxActivations ||
-      PLAN_DEVICE_LIMIT[planId] ||
-      DEFAULT_MAX_ACTIVATIONS;
+      maxActivations || PLAN_DEVICE_LIMIT[planId] || DEFAULT_MAX_ACTIVATIONS;
 
     const info = db
       .prepare(
-        `
-      INSERT INTO licenses (key, user_id, plan_id, status, max_activations, created_at, expires_at)
-      VALUES (?,?,?,?,?,?,?)
-    `
+        `INSERT INTO licenses (key, user_id, plan_id, status, max_activations, created_at, expires_at)
+         VALUES (?,?,?,?,?,?,?)`
       )
-      .run(
-        key,
-        user.id,
-        planId,
-        "active",
-        maxAct,
-        now.toISOString(),
-        expiresAt ? expiresAt.toISOString() : null
-      );
+      .run(key, user.id, planId, "active", maxAct, now.toISOString(), expiresAt ? expiresAt.toISOString() : null);
 
-    // actualizar plan "principal" del user
+    // opcional: actualizar plan del user
     db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(planId, user.id);
 
-    const lic = db
-      .prepare("SELECT * FROM licenses WHERE id = ?")
-      .get(info.lastInsertRowid);
+    const lic = db.prepare("SELECT * FROM licenses WHERE id = ?").get(info.lastInsertRowid);
 
-    res.json({
+    return res.json({
       ok: true,
       license: {
         id: lic.id,
@@ -514,128 +441,117 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
     });
   } catch (err) {
     console.error("Error en /api/licenses/issue", err);
-    res.status(500).json({ error: "Error interno" });
+    return res.status(500).json({ error: "Error interno" });
   }
 });
 
 // =========================
-// Endpoint de activación para la APP
+// Activación para la APP (alineado a Electron)
+// Requiere Bearer token + acepta snake_case
 // =========================
-app.post("/api/licenses/activate", (req, res) => {
+app.post("/api/licenses/activate", authMiddleware, (req, res) => {
   try {
-    const { key, installId, deviceName, appVersion } = req.body || {};
-    if (!key || !installId) {
-      return res
-        .status(400)
-        .json({ error: "key e installId son requeridos" });
+    // Aceptar ambos formatos (compat)
+    const rawKey = req.body?.license_key || req.body?.key || "";
+    const installId = req.body?.install_id || req.body?.installId || "";
+    const deviceName = req.body?.device_name || req.body?.deviceName || null;
+    const appVersion = req.body?.app_version || req.body?.appVersion || null;
+
+    const key = String(rawKey).trim();
+    const iid = String(installId).trim();
+
+    if (!key || !iid) {
+      return res.status(400).json({ ok: false, error: "license_key/key e install_id/installId son requeridos" });
     }
 
-    const license = db
-      .prepare("SELECT * FROM licenses WHERE key = ?")
-      .get(String(key).trim());
+    const license = db.prepare("SELECT * FROM licenses WHERE key = ?").get(key);
+    if (!license) return res.status(404).json({ ok: false, error: "Licencia no encontrada" });
 
-    if (!license) {
-      return res.status(404).json({ error: "Licencia no encontrada" });
+    // Seguridad: la licencia debe pertenecer al user logueado
+    if (Number(license.user_id) !== Number(req.user.id)) {
+      return res.status(403).json({ ok: false, error: "LICENSE_NOT_OWNED" });
     }
 
     if (license.status !== "active") {
-      return res.status(403).json({
-        error: "LICENCE_INACTIVE",
-        status: license.status,
-      });
+      return res.status(403).json({ ok: false, error: "LICENCE_INACTIVE", status: license.status });
     }
 
-    if (
-      license.expires_at &&
-      new Date(license.expires_at) < new Date()
-    ) {
-      return res.status(403).json({ error: "LICENCE_EXPIRED" });
+    if (license.expires_at && new Date(license.expires_at) < new Date()) {
+      return res.status(403).json({ ok: false, error: "LICENCE_EXPIRED" });
     }
 
     const nowIso = new Date().toISOString();
 
-    // verificar activaciones anteriores
-    let activation = db
-      .prepare(
-        "SELECT * FROM license_activations WHERE license_id = ? AND install_id = ?"
-      )
-      .get(license.id, installId);
+    // Buscar activación previa
+    const activation = db
+      .prepare("SELECT * FROM license_activations WHERE license_id = ? AND install_id = ?")
+      .get(license.id, iid);
 
     if (!activation) {
-      const countRow = db
-        .prepare(
-          "SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?"
-        )
+      const usedRow = db
+        .prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?")
         .get(license.id);
-      const used = countRow.n || 0;
 
+      const used = usedRow.n || 0;
       const maxAllowed =
-        license.max_activations ||
-        PLAN_DEVICE_LIMIT[license.plan_id] ||
-        DEFAULT_MAX_ACTIVATIONS;
+        license.max_activations || PLAN_DEVICE_LIMIT[license.plan_id] || DEFAULT_MAX_ACTIVATIONS;
 
       if (used >= maxAllowed) {
-        return res
-          .status(403)
-          .json({ error: "MAX_INSTALLS_REACHED" });
+        return res.status(403).json({ ok: false, error: "MAX_INSTALLS_REACHED" });
       }
 
       db.prepare(
-        `
-        INSERT INTO license_activations
-        (license_id, install_id, device_name, first_activated_at, last_seen_at, app_version)
-        VALUES (?,?,?,?,?,?)
-      `
-      ).run(
-        license.id,
-        installId,
-        deviceName || null,
-        nowIso,
-        nowIso,
-        appVersion || null
-      );
+        `INSERT INTO license_activations
+         (license_id, install_id, device_name, first_activated_at, last_seen_at, app_version)
+         VALUES (?,?,?,?,?,?)`
+      ).run(license.id, iid, deviceName, nowIso, nowIso, appVersion);
     } else {
       db.prepare(
-        `
-        UPDATE license_activations
-        SET last_seen_at = ?, app_version = ?, device_name = COALESCE(?, device_name)
-        WHERE id = ?
-      `
-      ).run(
-        nowIso,
-        appVersion || activation.app_version,
-        deviceName || activation.device_name,
-        activation.id
-      );
+        `UPDATE license_activations
+         SET last_seen_at = ?, app_version = ?, device_name = COALESCE(?, device_name)
+         WHERE id = ?`
+      ).run(nowIso, appVersion || activation.app_version, deviceName, activation.id);
     }
 
-    const plan =
-      PLANS.find((p) => p.id === license.plan_id) || PLANS[0];
-    const limits =
-      PLAN_LIMITS[license.plan_id] || PLAN_LIMITS["starter"];
+    const plan = PLANS.find((p) => p.id === license.plan_id) || PLANS[0];
+    const limits = getPlanLimits(license.plan_id);
 
-    const countRow2 = db
-      .prepare(
-        "SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?"
-      )
+    const countRow = db
+      .prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?")
       .get(license.id);
 
-    res.json({
+    // User fresh desde DB (por si cambió plan)
+    const userRow = db.prepare("SELECT id, email, plan FROM users WHERE id = ?").get(req.user.id);
+    const enrichedUser = enrichUserForClient(userRow);
+
+    // Token rotado (opcional pero le sirve a tu Electron para persistir)
+    const newToken = createToken(userRow);
+
+    return res.json({
       ok: true,
+      user: enrichedUser,
+      token: newToken,
       license: {
-        planId: license.plan_id,
-        planName: plan.name,
+        plan_key: license.plan_id,
+        plan_name: plan.name,
         status: license.status,
-        expiresAt: license.expires_at,
-        maxActivations: license.max_activations,
-        activationsUsed: countRow2.n || 0,
-        keyMasked: `${license.key.slice(0, 4)}-****-****`,
-        limits,
+        expires_at: license.expires_at,
+        max_activations: license.max_activations,
+        activations_used: countRow.n || 0,
+        key_masked: `${license.key.slice(0, 4)}-****-****`,
+        // límites en camelCase (y tu Electron ya mergea)
+        limits: {
+          maxAccounts: limits.maxAccounts,
+          maxWorkers: limits.maxWorkers,
+          maxMessagesPerDay: limits.maxMessagesPerDay,
+          warmupEnabled: limits.warmupEnabled,
+          maxDevices: limits.maxDevices,
+        },
       },
     });
   } catch (err) {
     console.error("Error en /api/licenses/activate", err);
-    res.status(500).json({ error: "Error interno" });
+    return res.status(500).json({ ok: false, error: "Error interno" });
   }
 });
 
@@ -643,7 +559,5 @@ app.post("/api/licenses/activate", (req, res) => {
 // Start
 // =========================
 app.listen(PORT, () => {
-  console.log(
-    `Hyperion website backend escuchando en http://localhost:${PORT}`
-  );
+  console.log(`Hyperion website backend escuchando en :${PORT}`);
 });
