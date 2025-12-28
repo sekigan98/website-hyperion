@@ -2,24 +2,33 @@ services:
   - type: web
     name: hyperion-site-backend
     runtime: node
+    plan: starter
+    region: oregon
+
     rootDir: backend
+
     buildCommand: npm install
     startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
 
-      # DB en disco persistente (IMPORTANTE)
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+
+      # JWT para sesiones (puede ser random)
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Para emitir licencias (mejor fijo para que lo sepas)
+      - key: ADMIN_API_KEY
+        value: hyperion-sekigan-1998
+
+      # SQLite en disco persistente
       - key: DATABASE_PATH
         value: /var/data/hyperion-site.sqlite
 
-      # Secrets (Render los genera si usás generateValue)
-      - key: JWT_SECRET
-        generateValue: true
-      - key: ADMIN_API_KEY
-        generateValue: true
-
-    disks:
-      - name: hyperion-db
-        mountPath: /var/data
-        sizeGB: 1
+    disk:
+      name: hyperion-db
+      mountPath: /var/data
+      sizeGB: 1
