@@ -1,96 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>Hyperion - WhatsApp Multi Sender</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Hyperion - Plataforma para campañas automatizadas de WhatsApp Multi Sender, con múltiples cuentas, warmup y envío masivo desde una app de escritorio." />
-  <!-- Favicon: cohete solo -->
-  <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body class="dark-mode">
-  <header class="site-header">
-    <div class="container header-inner">
-      <a href="index.html" class="brand">
-        <!-- Logo largo -->
-        <img src="assets/hyperion-logo.png" alt="Hyperion" class="brand-logo" />
-      </a>
-
-      <nav class="main-nav">
-        <a href="#features">Características</a>
-        <a href="#pricing">Planes</a>
-        <a href="#faq">FAQ</a>
-      </nav>
-
-      <div class="header-actions">
-        <a href="login.html" class="btn btn-outline">Ingresar</a>
-        <a href="#pricing" class="btn btn-primary">Ver planes</a>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <!-- HERO -->
-    <section class="hero">
-      <div class="container hero-inner">
-        <div class="hero-copy">
-          <!-- Logo largo en el héroe -->
-          <img src="assets/hyperion-logo.png" alt="Hyperion" class="hero-logo" />
-
-          <h1>Multi Sender de WhatsApp</h1>
-          <p class="hero-subtitle">
-            Hyperion es una app de escritorio para gestionar múltiples cuentas,
-            hacer warmup automático y lanzar campañas masivas sin depender de que
-            tengas el navegador abierto todo el día.
-          </p>
-
-          <div class="hero-actions">
-            <a href="#pricing" class="btn btn-primary">
-              Ver planes
-            </a>
-            <a href="login.html" class="btn btn-ghost">
-              Ingresar / Crear cuenta
-            </a>
-          </div>
-
-          <div class="hero-meta">
-            <span>🛡 Evitá bloqueos con warmup inteligente</span>
-            <span>📊 Stats globales y por cuenta</span>
-            <span>⚡ Pensado para closers, agencias y marketers</span>
-          </div>
-        </div>
-
-        <div class="hero-card">
-          <div class="hero-tag">Desktop Client</div>
-          <div class="hero-card-body">
-            <h2>Hyperion Client</h2>
-            <p>
-              Panel unificado de escritorio para manejar todas tus líneas de WhatsApp,
-              sin depender de Chrome ni tener 10 pestañas de WhatsApp Web abiertas.
-            </p>
-
-            <ul class="hero-list">
-              <li>✅ Múltiples cuentas con QR</li>
-              <li>✅ Campañas automáticas & manuales</li>
-              <li>✅ Warmup inteligente integrado</li>
-              <li>✅ Historial, logs y stats exportables</li>
-            </ul>
-
-            <div class="hero-download">
-              <a href="#" class="btn btn-primary btn-block">
-                ⬇ Descargar para Windows
-              </a>
-              <small class="muted">
-                * Próximamente soporte para macOS y Linux.
-              </small>
-              <small class="muted">
-                Requiere cuenta en Hyperion y licencia activa según tu plan.
-              </small>
-            </div>
-          </div>
-        </div>
 <!doctype html>
 <html lang="es-AR">
 <head>
@@ -98,10 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <title>Hyperion® — WhatsApp Multi Sender</title>
-  <meta name="description" content="Hyperion® es una app de escritorio para gestionar múltiples cuentas, warmup automático y campañas masivas de WhatsApp con stats y logs exportables." />
+  <meta
+    name="description"
+    content="Hyperion® es una app de escritorio para gestionar múltiples cuentas, warmup automático y campañas masivas de WhatsApp con stats y logs exportables."
+  />
   <meta name="theme-color" content="#0f172a" />
 
-  <!-- Canonical (ajustá al dominio final) -->
+  <!-- (Opcional) Base API override si lo querés -->
+  <!-- <meta name="hyperion-api-base" content="https://website-hyperion.onrender.com/api" /> -->
+
+  <!-- Canonical (ajustá al dominio final real) -->
   <link rel="canonical" href="https://hyperionsite.netlify.app/" />
 
   <!-- Open Graph -->
@@ -124,7 +37,10 @@
   <!-- Fonts (perf) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -139,8 +55,6 @@
           src="assets/hyperion-logo.png"
           alt="Hyperion"
           class="brand-logo"
-          width="180"
-          height="48"
           decoding="async"
         />
       </a>
@@ -167,8 +81,6 @@
             src="assets/hyperion-logo.png"
             alt="Hyperion"
             class="hero-logo"
-            width="240"
-            height="64"
             decoding="async"
           />
 
@@ -196,8 +108,8 @@
           <div class="hero-card-body">
             <h2>Hyperion Client</h2>
             <p>
-              Panel unificado de escritorio para manejar todas tus líneas de WhatsApp,
-              sin depender de Chrome ni tener 10 pestañas de WhatsApp Web abiertas.
+              Panel unificado de escritorio para manejar todas tus líneas de WhatsApp.
+              (Ojo: por dentro corre un navegador automatizado, no “magia” 😄)
             </p>
 
             <ul class="hero-list">
@@ -208,10 +120,8 @@
             </ul>
 
             <div class="hero-download">
-              <!-- Tip: cambiá el href al link real del instalador cuando lo tengas -->
-              <a href="downloads/hyperion-setup.exe" class="btn btn-primary btn-block">
-                ⬇ Descargar para Windows
-              </a>
+              <!-- Mientras no tengas el instalador público, dejalo en "#" -->
+              <a href="#" class="btn btn-primary btn-block">⬇ Descargar para Windows</a>
               <small class="muted">* Próximamente soporte para macOS y Linux.</small>
               <small class="muted">Requiere cuenta en Hyperion y licencia activa según tu plan.</small>
             </div>
@@ -226,57 +136,38 @@
         <h2 class="section-title">Pensado para escalar campañas, no para jugar al WhatsApp Web</h2>
         <p class="section-subtitle">
           Hyperion corre en una app de escritorio y usa workers dedicados para mantener
-          tus sesiones vivas. Vos controlás las cuentas, el warmup y el ritmo de envío,
-          sin depender de tener un navegador abierto ni tocar cada conversación a mano.
+          tus sesiones vivas. Vos controlás las cuentas, el warmup y el ritmo de envío.
         </p>
 
         <div class="grid grid-3">
           <article class="card">
             <h3>Múltiples cuentas, cero caos</h3>
-            <p>
-              Agregá cuentas con QR y dejá que cada worker maneje su sesión.
-              Ves estados, última actividad y stats por línea, todo desde un solo panel.
-            </p>
+            <p>Agregá cuentas con QR y dejá que cada worker maneje su sesión.</p>
           </article>
 
           <article class="card">
             <h3>Campañas inteligentes</h3>
-            <p>
-              Modo automático con límite diario y distribución horaria, o modo avanzado
-              con intervalos y jitter personalizados.
-            </p>
+            <p>Modo automático con límite diario y distribución horaria, o modo avanzado con intervalos.</p>
           </article>
 
           <article class="card">
             <h3>Warmup integrado</h3>
-            <p>
-              Calentamiento automático entre cuentas para reducir riesgo de bloqueos:
-              mensajes simulados, tiempos de espera y comportamiento configurable.
-            </p>
+            <p>Calentamiento automático entre cuentas para reducir riesgo de bloqueos.</p>
           </article>
 
           <article class="card">
             <h3>Validación de contactos</h3>
-            <p>
-              Subí un CSV, validá números y generá un archivo limpio listo para la campaña.
-              Evitás perder tiempo y reputación escribiendo a números inválidos.
-            </p>
+            <p>Subí un CSV, validá números y generá un archivo limpio listo para la campaña.</p>
           </article>
 
           <article class="card">
             <h3>Logs &amp; métricas claras</h3>
-            <p>
-              Historial en tiempo real, exportable a CSV, más un dashboard con enviados,
-              inválidos y errores por cuenta y globales.
-            </p>
+            <p>Historial en tiempo real, exportable a CSV, más dashboard por cuenta y global.</p>
           </article>
 
           <article class="card">
             <h3>Listo para agencia</h3>
-            <p>
-              Pensado para quienes manejan múltiples proyectos: cuentas separadas,
-              campañas simultáneas y warmup configurable.
-            </p>
+            <p>Para manejar múltiples proyectos con cuentas separadas y campañas simultáneas.</p>
           </article>
         </div>
       </div>
@@ -351,7 +242,7 @@
         </div>
 
         <p class="section-note">
-          Próximamente: pago con tarjeta, PayPal, transferencia y más.  
+          Próximamente: pago con tarjeta, PayPal, transferencia y más.
           Por ahora podés escribirnos para activaciones manuales y upgrades de plan.
         </p>
       </div>
@@ -366,9 +257,8 @@
           <details class="faq-item" open>
             <summary>¿Necesito tener el navegador abierto todo el tiempo?</summary>
             <p>
-              No. Hyperion corre como app de escritorio y levanta sus propios
-              procesos internos para cada cuenta. Mientras Hyperion esté abierto,
-              tus workers pueden seguir enviando aunque cierres Chrome.
+              No. Hyperion corre como app de escritorio y levanta procesos internos para cada cuenta.
+              Mientras Hyperion esté abierto, tus workers pueden seguir enviando.
             </p>
           </details>
 
@@ -376,8 +266,7 @@
             <summary>¿Hyperion cumple con las políticas de WhatsApp?</summary>
             <p>
               Hyperion es una herramienta de automatización para uso profesional.
-              Recomendamos usarla de forma responsable y respetando las políticas
-              de WhatsApp y las leyes aplicables. Evitá spam y listas compradas.
+              Recomendamos usarla de forma responsable, evitando spam y contenido no solicitado.
             </p>
           </details>
 
