@@ -12,7 +12,7 @@ app.set("trust proxy", 1);
 const PORT = process.env.PORT || 4000;
 
 // ⚠️ En producción: SI O SI setearlos como env vars (no hardcode)
-const JWT_SECRET = process.env.JWT_SECRET || "super-secreto-hyperion-2025-1998";
+const JWT_SECRET = process.env.JWT_SECRET || "guk26ljOkyzbusaV7uK0ilw4s1b0AO3762AHxDiOrQw=";
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998";
 
 // DB schema (se crea al boot)
