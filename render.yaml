@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: hyperion-site-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # DB en disco persistente (IMPORTANTE)
+      - key: DATABASE_PATH
+        value: /var/data/hyperion-site.sqlite
+
+      # Secrets (Render los genera si usás generateValue)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+
+    disks:
+      - name: hyperion-db
+        mountPath: /var/data
+        sizeGB: 1
