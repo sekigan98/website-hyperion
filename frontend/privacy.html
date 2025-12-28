@@ -1,0 +1,140 @@
+<!-- privacy.html -->
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Política de Privacidad — Hyperion</title>
+  <meta name="description" content="Política de privacidad de Hyperion." />
+  <meta name="theme-color" content="#0f172a" />
+
+  <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="dark-mode">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="Hyperion — Inicio">
+        <img src="assets/hyperion-logo.png" alt="Hyperion" class="brand-logo" />
+      </a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="index.html#features">Características</a>
+        <a href="index.html#pricing">Planes</a>
+        <a href="index.html#faq">FAQ</a>
+      </nav>
+
+      <div class="header-actions">
+        <a href="login.html" class="btn btn-outline">Ingresar</a>
+        <a href="index.html#pricing" class="btn btn-primary">Ver planes</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container">
+      <article class="card">
+        <h1 style="margin-top:0;">Política de Privacidad</h1>
+        <p class="muted small" style="margin-top:0.4rem;">
+          Última actualización: <strong>28/12/2025</strong>
+        </p>
+
+        <p class="muted">
+          Esta Política describe qué datos recolecta Hyperion, para qué se usan y qué opciones tenés.
+          Aplica al sitio web, el dashboard, la API y el cliente de escritorio.
+        </p>
+
+        <hr style="margin:1rem 0; opacity:0.25;">
+
+        <h2 id="datos">1) Qué datos recolectamos</h2>
+        <ul class="muted">
+          <li><strong>Cuenta:</strong> email y credenciales (la contraseña debe almacenarse hasheada en el servidor).</li>
+          <li><strong>Sesión:</strong> token de autenticación (JWT o equivalente) para mantenerte logueado.</li>
+          <li><strong>Licencias:</strong> estado de licencias, plan asociado, activaciones realizadas.</li>
+          <li><strong>Activación del cliente:</strong> identificador de instalación (“installId”), nombre de dispositivo (si se envía), versión de la app.</li>
+          <li><strong>Telemetría mínima (opcional):</strong> errores, logs técnicos y métricas básicas para mejorar estabilidad.</li>
+          <li><strong>Datos técnicos:</strong> IP, user-agent y eventos de seguridad (por ejemplo, intentos de login fallidos).</li>
+        </ul>
+
+        <h2 id="uso">2) Para qué usamos los datos</h2>
+        <ul class="muted">
+          <li>Crear tu cuenta, autenticarte y mantener tu sesión.</li>
+          <li>Validar licencias y aplicar límites del plan.</li>
+          <li>Prevenir fraude/abuso y mejorar seguridad.</li>
+          <li>Soporte técnico y mejora del producto (bugs, rendimiento).</li>
+        </ul>
+
+        <h2 id="cookies">3) Cookies y almacenamiento local</h2>
+        <p class="muted">
+          El sitio puede usar almacenamiento local del navegador (por ejemplo, <code>localStorage</code>) para guardar el token de sesión.
+          Si en el futuro se agregan cookies, se usará lo mínimo necesario para autenticación/seguridad.
+        </p>
+
+        <h2 id="compartir">4) Compartir datos con terceros</h2>
+        <p class="muted">
+          Podemos usar proveedores para hosting, base de datos, email o analítica. Compartimos solo lo necesario para operar el servicio.
+          No vendemos tus datos personales.
+        </p>
+
+        <h2 id="seguridad">5) Seguridad</h2>
+        <ul class="muted">
+          <li>Usar HTTPS para el sitio y la API.</li>
+          <li>Hashear contraseñas (por ejemplo, bcrypt/argon2) y proteger tokens.</li>
+          <li>Aplicar controles de acceso y logs de seguridad.</li>
+        </ul>
+
+        <h2 id="retencion">6) Retención</h2>
+        <p class="muted">
+          Conservamos datos el tiempo necesario para prestar el servicio y cumplir obligaciones legales.
+          Podés pedir eliminación/cierre de cuenta (ver Contacto).
+        </p>
+
+        <h2 id="derechos">7) Tus derechos</h2>
+        <p class="muted">
+          Podés solicitar acceso, rectificación o eliminación de tus datos, y pedir asistencia sobre tu cuenta.
+          Escribinos a soporte indicando el email registrado.
+        </p>
+
+        <h2 id="menores">8) Menores</h2>
+        <p class="muted">
+          Hyperion no está dirigido a menores. Si sos menor de edad, necesitás autorización de tu responsable legal.
+        </p>
+
+        <h2 id="cambios">9) Cambios</h2>
+        <p class="muted">
+          Podemos actualizar esta Política. Publicaremos la versión vigente en esta página.
+        </p>
+
+        <h2 id="contacto">10) Contacto</h2>
+        <p class="muted">
+          Soporte: <a href="mailto:soporte@hyperion.com">soporte@hyperion.com</a>
+        </p>
+        
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <span class="brand-name">Hyperion</span>
+        <span class="muted">© <span id="year"></span> Todos los derechos reservados.</span>
+      </div>
+      <div class="footer-right">
+        <a href="mailto:soporte@hyperion.com" aria-label="Soporte por email">Soporte</a>
+        <a href="terms.html">Términos</a>
+        <a href="privacy.html">Privacidad</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
