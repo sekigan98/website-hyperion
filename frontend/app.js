@@ -5,7 +5,7 @@
 // Config API base + links (soporta override por <meta> o window config)
 // ------------------------------------------------------------
 const DEFAULT_LOCAL_API = "http://localhost:4000/api";
-const DEFAULT_PROD_API = "https://website-hyperion.onrender.com/api";
+const DEFAULT_PROD_API = "https://hyperion-site-backend.onrender.com/api";
 
 function isLocalhostHost(hostname) {
   return hostname === "localhost" || hostname === "127.0.0.1";
