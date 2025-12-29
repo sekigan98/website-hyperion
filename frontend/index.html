@@ -2,6 +2,7 @@
 <html lang="es-AR">
 <head>
   <meta name="hyperion-api-base" content="https://hyperion-site-backend.onrender.com/api">
+  <meta name="hyperion-download-win" content="https://github.com/sekigan98/hyperion-updates/releases/latest/download/Hyperion-Setup.exe">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -11,9 +12,6 @@
     content="Hyperion® es una app de escritorio para gestionar múltiples cuentas, warmup automático y campañas masivas de WhatsApp con stats y logs exportables."
   />
   <meta name="theme-color" content="#0f172a" />
-
-  <!-- (Opcional) Base API override si lo querés -->
-  <!-- <meta name="hyperion-api-base" content="https://website-hyperion.onrender.com/api" /> -->
 
   <!-- Canonical (ajustá al dominio final real) -->
   <link rel="canonical" href="https://hyperionsite.netlify.app/" />
@@ -121,8 +119,14 @@
             </ul>
 
             <div class="hero-download">
-              <!-- Mientras no tengas el instalador público, dejalo en "#" -->
-              <a id="download-windows-hero" href="#" class="btn btn-primary btn-block">⬇ Descargar para Windows</a>
+              <a
+                id="download-win"
+                data-hyperion-download="win"
+                href="https://github.com/sekigan98/hyperion-updates/releases/latest/download/Hyperion-Setup.exe"
+                class="btn btn-primary btn-block"
+              >
+                ⬇ Descargar para Windows
+              </a>
               <small class="muted">* Próximamente soporte para macOS y Linux.</small>
               <small class="muted">Requiere cuenta en Hyperion y licencia activa según tu plan.</small>
             </div>
