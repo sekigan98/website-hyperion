@@ -199,20 +199,46 @@ function getPlanLimits(planId) {
 }
 
 function enrichUserForClient(userRow) {
-  const planId = userRow.plan || "starter";
+  const planId = getEffectivePlanForUser(userRow.id); // ✅ plan real por licencias
   const limits = getPlanLimits(planId);
   return {
     id: userRow.id,
     email: userRow.email,
     plan: planId,
-
-    // snake_case para compat con tu electron/license.js
     max_accounts: limits.maxAccounts,
     messages_per_day: limits.maxMessagesPerDay,
     warmup_enabled: !!limits.warmupEnabled,
     max_workers: limits.maxWorkers,
     max_devices: limits.maxDevices,
   };
+}
+
+function isLicenseActiveNow(l) {
+  if (!l) return false;
+  if (l.status !== "active") return false;
+  if (!l.expires_at) return true;
+  return Date.parse(l.expires_at) > Date.now();
+}
+
+// prioridad (ajustala a tu gusto)
+const PLAN_RANK = { starter: 0, pro: 1, lifetime: 2, agency: 3 };
+
+function pickBestPlan(planIds = []) {
+  let best = "starter";
+  for (const p of planIds) {
+    const k = String(p || "starter").toLowerCase();
+    if ((PLAN_RANK[k] ?? -1) > (PLAN_RANK[best] ?? 0)) best = k;
+  }
+  return best;
+}
+
+function getEffectivePlanForUser(userId) {
+  const rows = db
+    .prepare("SELECT plan_id, status, expires_at FROM licenses WHERE user_id = ?")
+    .all(userId);
+
+  const active = rows.filter(isLicenseActiveNow).map((r) => r.plan_id);
+  return pickBestPlan(active);
 }
 
 // =========================
