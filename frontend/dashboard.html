@@ -2,12 +2,12 @@
 <html lang="es">
 <head>
   <meta name="hyperion-api-base" content="https://hyperion-site-backend.onrender.com/api" />
+  <meta name="hyperion-download-win" content="https://github.com/sekigan98/hyperion-updates/releases/latest/download/Hyperion-Setup.exe" />
   <meta charset="utf-8" />
   <title>Dashboard - Hyperion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Dashboard de Hyperion: cuenta, plan, licencias y descargas del cliente de escritorio." />
 
-  
   <!-- Favicon -->
   <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
 
@@ -28,9 +28,8 @@
 
   <header class="site-header">
     <div class="container header-inner">
-    <a href="index.html" class="brand" aria-label="Volver al inicio">
+      <a href="index.html" class="brand" aria-label="Volver al inicio">
         <img src="assets/hyperion-logo.png" alt="Hyperion" class="brand-logo" />
-      </a>
       </a>
 
       <nav class="main-nav" aria-label="Navegación principal">
@@ -106,10 +105,10 @@
             Para usar todas las funciones necesitás una licencia activa asociada a tu cuenta.
           </p>
 
-          <!-- TIP: cuando tengas el link real, reemplazá el href -->
           <a
-            id="download-windows"
-            href="#"
+            id="download-win-dashboard"
+            data-hyperion-download="win"
+            href="https://github.com/sekigan98/hyperion-updates/releases/latest/download/Hyperion-Setup.exe"
             class="btn btn-primary btn-block"
             role="button"
             aria-label="Descargar Hyperion para Windows"
