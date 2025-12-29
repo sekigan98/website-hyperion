@@ -7,6 +7,10 @@
 const DEFAULT_LOCAL_API = "http://localhost:4000/api";
 const DEFAULT_PROD_API = "https://hyperion-site-backend.onrender.com/api";
 
+// ✅ Link fijo (GitHub Releases latest)
+const DEFAULT_DOWNLOAD_WIN =
+  "https://github.com/sekigan98/hyperion-updates/releases/latest/download/Hyperion-Setup.exe";
+
 function isLocalhostHost(hostname) {
   return hostname === "localhost" || hostname === "127.0.0.1";
 }
@@ -43,13 +47,16 @@ function getApiBase() {
 
 function getDownloadWinUrl() {
   // Opcional:
-  // <meta name="hyperion-download-win" content="https://.../HyperionSetup.exe">
+  // <meta name="hyperion-download-win" content="https://.../Hyperion-Setup.exe">
   const meta = String(readMeta("hyperion-download-win") || "").trim();
   if (meta) return meta;
 
   const w = window.__HYPERION_CONFIG__?.downloadWin;
   const winCfg = String(w || "").trim();
-  return winCfg || "";
+  if (winCfg) return winCfg;
+
+  // ✅ fallback fijo
+  return DEFAULT_DOWNLOAD_WIN;
 }
 
 const API_BASE = getApiBase();
@@ -60,6 +67,10 @@ const DOWNLOAD_WIN_URL = getDownloadWinUrl();
 // ------------------------------------------------------------
 function $(selector) {
   return document.querySelector(selector);
+}
+
+function $all(selector) {
+  return Array.from(document.querySelectorAll(selector));
 }
 
 function on(el, ev, fn) {
@@ -129,6 +140,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const yearEl = $("#year");
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
 });
+
+// ------------------------------------------------------------
+// Setear links de descarga (robusto)
+// ------------------------------------------------------------
+function applyDownloadLinks() {
+  const url = String(DOWNLOAD_WIN_URL || "").trim() || DEFAULT_DOWNLOAD_WIN;
+  if (!url) return;
+
+  const selectors = [
+    "#download-win",
+    "#download-win-dashboard",
+    "#download-windows",
+    "#download-windows-hero",
+    "#download-windows-dashboard",
+    'a[data-hyperion-download="win"]',
+  ];
+
+  selectors.forEach((sel) => {
+    $all(sel).forEach((a) => {
+      try {
+        a.setAttribute("href", url);
+      } catch (_) {}
+    });
+  });
+}
 
 // ------------------------------------------------------------
 // Fetch robusto: timeout + JSON safe
@@ -391,13 +427,8 @@ function initDashboard() {
     window.location.href = "index.html";
   });
 
-  // Botones de descarga (si existen)
-  const dl1 = $("#download-win");        // sugerido en index.html
-  const dl2 = $("#download-win-dashboard"); // sugerido en dashboard.html
-  [dl1, dl2].forEach((a) => {
-    if (!a) return;
-    if (DOWNLOAD_WIN_URL) a.setAttribute("href", DOWNLOAD_WIN_URL);
-  });
+  // ✅ Asegura que los botones queden con link
+  applyDownloadLinks();
 
   // Refrescar /me (solo invalidamos sesión si es 401/403)
   (async () => {
@@ -596,9 +627,8 @@ function initLanding() {
   const cardsContainer = document.getElementById("pricing-cards");
   if (!cardsContainer) return;
 
-  // Botón descarga en landing (si existe)
-  const dl = $("#download-win");
-  if (dl && DOWNLOAD_WIN_URL) dl.setAttribute("href", DOWNLOAD_WIN_URL);
+  // ✅ Asegura que el botón quede con link
+  applyDownloadLinks();
 
   (async () => {
     try {
@@ -645,6 +675,9 @@ function initLanding() {
 // Bootstrap
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
+  // ✅ aplica link de descarga en cualquier página que cargue app.js
+  applyDownloadLinks();
+
   initAuthPage();
   initDashboard();
   initLanding();
