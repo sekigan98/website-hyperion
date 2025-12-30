@@ -66,7 +66,6 @@ const PLANS = [
     cta: "Empezar gratis",
     features: [
       "1 cuenta de WhatsApp",
-      "Campañas manuales básicas",
       "Validación local de contactos",
       "Warmup desactivado",
       "1 dispositivo instalado",
@@ -82,7 +81,6 @@ const PLANS = [
     cta: "Probar Hyperion Pro",
     features: [
       "Hasta 5 cuentas de WhatsApp",
-      "Campañas automáticas + avanzadas",
       "Warmup inteligente",
       "Stats avanzadas por cuenta",
       "Soporte prioritario",
@@ -98,7 +96,7 @@ const PLANS = [
     highlight: false,
     cta: "Comprar licencia Lifetime",
     features: [
-      "Hasta 10 cuentas de WhatsApp",
+      "Hasta 20 cuentas de WhatsApp",
       "Mensajes diarios elevados",
       "Warmup habilitado",
       "Soporte prioritario",
@@ -114,7 +112,7 @@ const PLANS = [
     highlight: false,
     cta: "Hablar con ventas",
     features: [
-      "20+ cuentas de WhatsApp",
+      "14 cuentas de WhatsApp",
       "Warmup agresivo ajustable",
       "Soporte dedicado",
       "Asistencia en onboarding y setup",
@@ -126,8 +124,8 @@ const PLANS = [
 const PLAN_LIMITS = {
   starter: { maxAccounts: 1, maxWorkers: 1, maxMessagesPerDay: 30, warmupEnabled: false, maxDevices: 1 },
   pro: { maxAccounts: 5, maxWorkers: 5, maxMessagesPerDay: 800, warmupEnabled: true, maxDevices: 2 },
-  lifetime: { maxAccounts: 10, maxWorkers: 10, maxMessagesPerDay: 50000, warmupEnabled: true, maxDevices: 5 },
-  agency: { maxAccounts: 20, maxWorkers: 20, maxMessagesPerDay: 5000, warmupEnabled: true, maxDevices: 3 },
+  lifetime: { maxAccounts: 20, maxWorkers: 20, maxMessagesPerDay: 50000000, warmupEnabled: true, maxDevices: 5 },
+  agency: { maxAccounts: 14, maxWorkers: 14, maxMessagesPerDay: 5000, warmupEnabled: true, maxDevices: 3 },
 };
 
 const PLAN_DEVICE_LIMIT = { starter: 1, pro: 2, lifetime: 5, agency: 3 };
