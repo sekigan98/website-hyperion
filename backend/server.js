@@ -170,8 +170,27 @@ const DEFAULT_MAX_ACTIVATIONS = 1;
 
 // =========================
 // CORS (configurable)
+function getPlanLimits(planId) {
   return PLAN_LIMITS[planId] || PLAN_LIMITS.starter;
 }
+
+const CORS_ALLOW_ORIGINS = String(process.env.CORS_ALLOW_ORIGINS || "");
+const CORS_ALLOW_LIST = CORS_ALLOW_ORIGINS.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || CORS_ALLOW_LIST.length === 0 || CORS_ALLOW_LIST.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 
 function enrichUserForClient(userRow) {
   const planId = getEffectivePlanForUser(userRow.id); // ✅ plan real por licencias
