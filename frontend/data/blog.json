@@ -1,0 +1,26 @@
+[
+  {
+    "id": "warmup-2025",
+    "title": "Warmup inteligente: cómo evitar bloqueos en 2025",
+    "excerpt": "Estrategias de calentamiento por cuentas, ventanas horarias y métricas que reducen bloqueos.",
+    "date": "2025-01-12",
+    "tag": "Deliverability",
+    "readTime": "6 min"
+  },
+  {
+    "id": "campaign-ops",
+    "title": "Operación de campañas masivas sin caos",
+    "excerpt": "Checklist y stack para manejar 10+ campañas simultáneas con calidad.",
+    "date": "2025-01-05",
+    "tag": "Operaciones",
+    "readTime": "8 min"
+  },
+  {
+    "id": "metrics",
+    "title": "Métricas clave para WhatsApp outbound",
+    "excerpt": "KPIs críticos: deliverability, respuesta, CTR y cómo interpretarlos.",
+    "date": "2024-12-20",
+    "tag": "Analytics",
+    "readTime": "5 min"
+  }
+]

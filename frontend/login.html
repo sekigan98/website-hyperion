@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta name="hyperion-api-base" content="https://hyperion-site-backend.onrender.com/api" />
+  <meta name="hyperion-ga4-id" content="G-XXXXXXXXXX" />
   <meta charset="utf-8" />
   <title>Ingresar - Hyperion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -27,6 +28,11 @@
       <a href="index.html" class="brand" aria-label="Volver al inicio">
         <img src="assets/hyperion-logo.png" alt="Hyperion" class="brand-logo" />
       </a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-ghost" type="button" aria-label="Cambiar tema">
+          🌙 / ☀️
+        </button>
+      </div>
     </div>
   </header>
 
@@ -39,6 +45,16 @@
       </p>
 
       <form id="login-form" class="auth-form" autocomplete="on">
+        <div class="social-login">
+          <button type="button" class="btn btn-outline btn-block" data-oauth="google">
+            Continuar con Google
+          </button>
+          <button type="button" class="btn btn-outline btn-block" data-oauth="github">
+            Continuar con GitHub
+          </button>
+          <span class="muted small">Login social disponible al conectar tus credenciales OAuth.</span>
+        </div>
+
         <label>
           Email
           <input type="email" name="email" required autocomplete="email" inputmode="email" />
@@ -104,6 +120,19 @@
       </form>
     </section>
   </main>
+
+  <div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" hidden>
+    <div>
+      <strong>Cookies &amp; privacidad</strong>
+      <p class="muted small">
+        Usamos cookies para analítica y mejorar la experiencia. Podés elegir tus preferencias.
+      </p>
+    </div>
+    <div class="cookie-actions">
+      <button id="cookie-reject" class="btn btn-ghost">Rechazar</button>
+      <button id="cookie-accept" class="btn btn-primary">Aceptar</button>
+    </div>
+  </div>
 
   <script src="app.js" type="module"></script>
 </body>

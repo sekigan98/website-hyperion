@@ -61,6 +61,10 @@ function getDownloadWinUrl() {
 
 const API_BASE = getApiBase();
 const DOWNLOAD_WIN_URL = getDownloadWinUrl();
+const GA4_ID = String(readMeta("hyperion-ga4-id") || "").trim();
+
+const THEME_KEY = "hyperion_theme";
+const COOKIE_KEY = "hyperion_cookie_consent";
 
 // ------------------------------------------------------------
 // Utils DOM
@@ -119,11 +123,102 @@ function toDateLabel(iso) {
   return `Vence: ${d.toLocaleDateString()}`;
 }
 
+function toDateShort(iso) {
+  if (!iso) return "Sin fecha";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "Sin fecha";
+  return d.toLocaleDateString();
+}
+
 function setBusy(form, isBusy) {
   if (!form) return;
   form.classList.toggle("is-busy", !!isBusy);
   const btn = form.querySelector('button[type="submit"]');
   if (btn) btn.disabled = !!isBusy;
+}
+
+function loadScript(src, attrs = {}) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    Object.entries(attrs).forEach(([key, value]) => s.setAttribute(key, value));
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function applyTheme(theme) {
+  const root = document.documentElement;
+  if (theme === "light") {
+    root.setAttribute("data-theme", "light");
+  } else {
+    root.setAttribute("data-theme", "dark");
+  }
+}
+
+function initThemeToggle() {
+  const btn = document.getElementById("theme-toggle");
+  if (!btn) return;
+
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) {
+    applyTheme(saved);
+  } else {
+    applyTheme("dark");
+  }
+
+  btn.addEventListener("click", () => {
+    const current = document.documentElement.getAttribute("data-theme") || "dark";
+    const next = current === "light" ? "dark" : "light";
+    applyTheme(next);
+    localStorage.setItem(THEME_KEY, next);
+  });
+}
+
+async function initGa4IfAllowed() {
+  const consent = localStorage.getItem(COOKIE_KEY);
+  if (consent !== "accepted") return;
+  if (!GA4_ID || GA4_ID === "G-XXXXXXXXXX") return;
+
+  try {
+    await loadScript(`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`, { async: "true" });
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      window.dataLayer.push(arguments);
+    }
+    gtag("js", new Date());
+    gtag("config", GA4_ID);
+  } catch (err) {
+    console.warn("[ga4] failed to load", err);
+  }
+}
+
+function initCookieBanner() {
+  const banner = document.getElementById("cookie-banner");
+  if (!banner) return;
+
+  const consent = localStorage.getItem(COOKIE_KEY);
+  if (consent === "accepted" || consent === "rejected") {
+    initGa4IfAllowed();
+    return;
+  }
+
+  banner.hidden = false;
+
+  const acceptBtn = document.getElementById("cookie-accept");
+  const rejectBtn = document.getElementById("cookie-reject");
+
+  on(acceptBtn, "click", () => {
+    localStorage.setItem(COOKIE_KEY, "accepted");
+    banner.hidden = true;
+    initGa4IfAllowed();
+  });
+
+  on(rejectBtn, "click", () => {
+    localStorage.setItem(COOKIE_KEY, "rejected");
+    banner.hidden = true;
+  });
 }
 
 // Redirect con next
@@ -281,6 +376,7 @@ function initAuthPage() {
   const loginError = $("#login-error");
   const registerError = $("#register-error");
   const showRegisterLink = $("#show-register");
+  const socialButtons = $all("[data-oauth]");
 
   if (!loginForm && !registerForm) return;
 
@@ -301,6 +397,27 @@ function initAuthPage() {
       loginForm.removeAttribute("hidden");
       registerForm.setAttribute("hidden", "true");
     }
+  });
+
+  // Social login (placeholder until OAuth config)
+  socialButtons.forEach((btn) => {
+    on(btn, "click", async () => {
+      hideError(loginError);
+      const provider = btn.getAttribute("data-oauth");
+      if (!provider) return;
+
+      try {
+        const { res, data } = await requestJson(`/auth/oauth/${provider}`);
+        const msg = data?.error || "OAuth no disponible.";
+        showError(loginError, msg);
+        if (res.ok && data?.url) {
+          window.location.href = data.url;
+        }
+      } catch (err) {
+        console.warn("[oauth] error", err);
+        showError(loginError, "OAuth no disponible por ahora.");
+      }
+    });
   });
 
   // Login
@@ -672,15 +789,327 @@ function initLanding() {
 }
 
 // ------------------------------------------------------------
+// Contact form
+// ------------------------------------------------------------
+function initContactForm() {
+  const form = document.getElementById("contact-form");
+  if (!form) return;
+
+  const successEl = document.getElementById("contact-success");
+  const errorEl = document.getElementById("contact-error");
+
+  on(form, "submit", async (e) => {
+    e.preventDefault();
+    if (successEl) successEl.hidden = true;
+    hideError(errorEl);
+    setBusy(form, true);
+
+    const formData = new FormData(form);
+    const payload = {
+      name: String(formData.get("name") || "").trim(),
+      email: String(formData.get("email") || "").trim(),
+      company: String(formData.get("company") || "").trim(),
+      message: String(formData.get("message") || "").trim(),
+    };
+
+    try {
+      const { res, data } = await requestJson("/contact", { method: "POST", body: payload });
+      if (!res.ok || data?.ok === false) {
+        showError(errorEl, data?.error || "No se pudo enviar el mensaje.");
+        return;
+      }
+      if (successEl) successEl.hidden = false;
+      form.reset();
+    } catch (err) {
+      console.error("[contact] error", err);
+      showError(errorEl, "Error de conexión. Intentá de nuevo.");
+    } finally {
+      setBusy(form, false);
+    }
+  });
+}
+
+// ------------------------------------------------------------
+// Newsletter
+// ------------------------------------------------------------
+function initNewsletterForm() {
+  const form = document.getElementById("newsletter-form");
+  const msgEl = document.getElementById("newsletter-msg");
+  if (!form) return;
+
+  on(form, "submit", async (e) => {
+    e.preventDefault();
+    if (msgEl) msgEl.hidden = true;
+    setBusy(form, true);
+
+    const formData = new FormData(form);
+    const email = String(formData.get("email") || "").trim();
+
+    try {
+      const { res, data } = await requestJson("/newsletter", {
+        method: "POST",
+        body: { email, source: "landing" },
+      });
+
+      if (!res.ok || data?.ok === false) {
+        if (msgEl) {
+          msgEl.hidden = false;
+          msgEl.textContent = data?.error || "No se pudo suscribir.";
+        }
+        return;
+      }
+
+      if (msgEl) {
+        msgEl.hidden = false;
+        msgEl.textContent =
+          data?.status === "already_subscribed"
+            ? "Ya estabas suscripto. ¡Gracias!"
+            : "✅ Suscripción confirmada.";
+      }
+      form.reset();
+    } catch (err) {
+      console.error("[newsletter] error", err);
+      if (msgEl) {
+        msgEl.hidden = false;
+        msgEl.textContent = "Error de conexión.";
+      }
+    } finally {
+      setBusy(form, false);
+    }
+  });
+}
+
+// ------------------------------------------------------------
+// Quote calculator
+// ------------------------------------------------------------
+function initQuoteCalculator() {
+  const form = document.getElementById("quote-form");
+  const totalEl = document.getElementById("quote-total");
+  if (!form || !totalEl) return;
+
+  const compute = () => {
+    const data = new FormData(form);
+    const accounts = Number(data.get("accounts") || 0);
+    const campaigns = Number(data.get("campaigns") || 0);
+    const support = String(data.get("support") || "standard");
+
+    const base = 200;
+    const accountCost = accounts * 80;
+    const campaignCost = campaigns * 40;
+    const supportMultiplier = support === "dedicated" ? 1.6 : support === "priority" ? 1.3 : 1;
+
+    const total = Math.round((base + accountCost + campaignCost) * supportMultiplier);
+    totalEl.textContent = `Desde $${total} USD / mes`;
+  };
+
+  on(form, "input", compute);
+  on(form, "submit", (e) => {
+    e.preventDefault();
+    compute();
+    window.location.href = "#contact";
+  });
+
+  compute();
+}
+
+// ------------------------------------------------------------
+// Tickets (dashboard)
+// ------------------------------------------------------------
+function initTickets() {
+  const form = document.getElementById("ticket-form");
+  const list = document.getElementById("tickets-list");
+  const msgEl = document.getElementById("ticket-msg");
+  if (!form || !list) return;
+
+  const { token } = getSession();
+  if (!token) return;
+
+  const loadTickets = async () => {
+    try {
+      const { res, data } = await requestJson("/tickets", { token });
+      if (res.status === 401 || res.status === 403) {
+        clearSession();
+        redirectToLogin();
+        return;
+      }
+      if (!res.ok) {
+        list.innerHTML = '<p class="muted small">No se pudieron cargar los tickets.</p>';
+        return;
+      }
+      const tickets = Array.isArray(data.tickets) ? data.tickets : [];
+      if (!tickets.length) {
+        list.innerHTML = '<p class="muted small">Todavía no tenés tickets.</p>';
+        return;
+      }
+      list.innerHTML = "";
+      tickets.forEach((ticket) => {
+        const item = document.createElement("div");
+        item.className = "ticket-item";
+        const messages = (ticket.messages || [])
+          .map(
+            (msg) =>
+              `<div class="ticket-message"><strong>${escapeHtml(msg.sender)}</strong>: ${escapeHtml(
+                msg.message
+              )}</div>`
+          )
+          .join("");
+
+        item.innerHTML = `
+          <strong>${escapeHtml(ticket.subject || "Ticket")}</strong>
+          <div class="ticket-meta">
+            <span>Estado: ${escapeHtml(ticket.status || "open")}</span>
+            <span>Prioridad: ${escapeHtml(ticket.priority || "normal")}</span>
+            <span>Actualizado: ${escapeHtml(toDateShort(ticket.updatedAt))}</span>
+          </div>
+          <div class="ticket-messages">${messages}</div>
+        `;
+        list.appendChild(item);
+      });
+    } catch (err) {
+      console.error("[tickets] error", err);
+      list.innerHTML = '<p class="muted small">No se pudieron cargar los tickets.</p>';
+    }
+  };
+
+  on(form, "submit", async (e) => {
+    e.preventDefault();
+    if (msgEl) msgEl.hidden = true;
+    setBusy(form, true);
+
+    const data = new FormData(form);
+    const payload = {
+      subject: String(data.get("subject") || "").trim(),
+      priority: String(data.get("priority") || "normal"),
+      message: String(data.get("message") || "").trim(),
+    };
+
+    try {
+      const { res, data: resp } = await requestJson("/tickets", {
+        method: "POST",
+        token,
+        body: payload,
+      });
+      if (!res.ok || resp?.ok === false) {
+        if (msgEl) {
+          msgEl.hidden = false;
+          msgEl.textContent = resp?.error || "No se pudo crear el ticket.";
+        }
+        return;
+      }
+      form.reset();
+      await loadTickets();
+    } catch (err) {
+      console.error("[tickets] create error", err);
+      if (msgEl) {
+        msgEl.hidden = false;
+        msgEl.textContent = "Error de conexión.";
+      }
+    } finally {
+      setBusy(form, false);
+    }
+  });
+
+  loadTickets();
+}
+
+// ------------------------------------------------------------
+// Blog
+// ------------------------------------------------------------
+function renderBlogCards(container, posts) {
+  if (!container) return;
+  container.innerHTML = "";
+  posts.forEach((post) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML = `
+      <span class="badge">${escapeHtml(post.tag || "Artículo")}</span>
+      <h3>${escapeHtml(post.title || "Título")}</h3>
+      <p class="muted">${escapeHtml(post.excerpt || "")}</p>
+      <p class="muted small">${escapeHtml(post.date || "")} · ${escapeHtml(post.readTime || "")}</p>
+    `;
+    container.appendChild(card);
+  });
+}
+
+async function initBlog() {
+  const preview = document.getElementById("blog-preview");
+  const list = document.getElementById("blog-list");
+  if (!preview && !list) return;
+
+  try {
+    const res = await fetch("data/blog.json", { cache: "no-store" });
+    if (!res.ok) return;
+    const posts = await res.json();
+    if (preview) renderBlogCards(preview, posts.slice(0, 3));
+    if (list) renderBlogCards(list, posts);
+  } catch (err) {
+    console.warn("[blog] error", err);
+  }
+}
+
+// ------------------------------------------------------------
+// Chat widget
+// ------------------------------------------------------------
+function initChatWidget() {
+  const widget = document.getElementById("chat-widget");
+  if (!widget) return;
+  const toggle = document.getElementById("chat-toggle");
+  const panel = widget.querySelector(".chat-panel");
+  const messages = document.getElementById("chat-messages");
+  const quick1 = document.getElementById("chat-quick-1");
+  const quick2 = document.getElementById("chat-quick-2");
+
+  const addMessage = (text) => {
+    if (!messages) return;
+    const item = document.createElement("div");
+    item.className = "chat-message";
+    item.textContent = text;
+    messages.appendChild(item);
+  };
+
+  if (messages && messages.childElementCount === 0) {
+    addMessage("Hola 👋 Soy Hyperion Assistant. ¿En qué te puedo ayudar?");
+  }
+
+  on(toggle, "click", () => {
+    const isOpen = panel && !panel.hasAttribute("hidden");
+    if (!panel) return;
+    if (isOpen) {
+      panel.setAttribute("hidden", "true");
+      toggle.setAttribute("aria-expanded", "false");
+    } else {
+      panel.removeAttribute("hidden");
+      toggle.setAttribute("aria-expanded", "true");
+    }
+  });
+
+  on(quick1, "click", () => {
+    addMessage("Precios: desde $200 USD / mes según cuentas y soporte. ¿Querés una propuesta?");
+  });
+
+  on(quick2, "click", () => {
+    addMessage("Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com.");
+  });
+}
+
+// ------------------------------------------------------------
 // Bootstrap
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   // ✅ aplica link de descarga en cualquier página que cargue app.js
   applyDownloadLinks();
 
+  initThemeToggle();
+  initCookieBanner();
   initAuthPage();
   initDashboard();
   initLanding();
+  initContactForm();
+  initNewsletterForm();
+  initQuoteCalculator();
+  initTickets();
+  initBlog();
+  initChatWidget();
 });
 
 // Debug útil (podés borrarlo cuando quieras)

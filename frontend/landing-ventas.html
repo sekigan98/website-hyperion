@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta name="hyperion-api-base" content="https://hyperion-site-backend.onrender.com/api" />
+  <meta name="hyperion-ga4-id" content="G-XXXXXXXXXX" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hyperion para Equipos de Ventas</title>
+  <meta name="description" content="Landing page para equipos de ventas: campañas escalables y métricas claras." />
+  <link rel="icon" href="assets/hyperion-favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="dark-mode">
+  <header class="site-header minimal">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="Hyperion — Inicio">
+        <img src="assets/hyperion-logo.png" alt="Hyperion" class="brand-logo" />
+      </a>
+      <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-ghost" type="button" aria-label="Cambiar tema">
+          🌙 / ☀️
+        </button>
+        <a href="login.html" class="btn btn-outline">Ingresar</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="section">
+    <div class="container">
+      <article class="card">
+        <h1>Hyperion para Equipos de Ventas</h1>
+        <p class="muted">
+          Automatizá outreach, mantené el control del warmup y medí resultados en tiempo real.
+        </p>
+        <ul class="muted">
+          <li>⚡ Campañas rápidas con límites seguros.</li>
+          <li>📈 Dashboards por cuenta y por equipo.</li>
+          <li>🎯 Mejor tasa de respuesta con segmentación.</li>
+        </ul>
+        <a href="index.html#quote" class="btn btn-primary">Cotizar ahora</a>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <span class="brand-name">Hyperion</span>
+        <span class="muted">© <span id="year"></span> Todos los derechos reservados.</span>
+      </div>
+    </div>
+  </footer>
+
+  <div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" hidden>
+    <div>
+      <strong>Cookies &amp; privacidad</strong>
+      <p class="muted small">
+        Usamos cookies para analítica y mejorar la experiencia. Podés elegir tus preferencias.
+      </p>
+    </div>
+    <div class="cookie-actions">
+      <button id="cookie-reject" class="btn btn-ghost">Rechazar</button>
+      <button id="cookie-accept" class="btn btn-primary">Aceptar</button>
+    </div>
+  </div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

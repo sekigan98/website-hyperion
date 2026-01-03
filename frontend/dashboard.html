@@ -3,6 +3,7 @@
 <head>
   <meta name="hyperion-api-base" content="https://hyperion-site-backend.onrender.com/api" />
   <meta name="hyperion-download-win" content="https://github.com/sekigan98/hyperion-updates/releases/latest/download/Hyperion-Setup.exe" />
+  <meta name="hyperion-ga4-id" content="G-XXXXXXXXXX" />
   <meta charset="utf-8" />
   <title>Dashboard - Hyperion</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -38,6 +39,9 @@
       </nav>
 
       <div class="header-actions">
+        <button id="theme-toggle" class="btn btn-ghost" type="button" aria-label="Cambiar tema">
+          🌙 / ☀️
+        </button>
         <button id="logout-btn" class="btn btn-outline" type="button">Cerrar sesión</button>
       </div>
     </div>
@@ -122,6 +126,51 @@
         </section>
       </div>
 
+      <section class="card" style="margin-top:2rem;" aria-labelledby="metricas-title">
+        <h2 id="metricas-title">Métricas clave</h2>
+        <div class="grid grid-3">
+          <div class="card">
+            <strong>Deliverability</strong>
+            <p class="muted">96% promedio (últimos 7 días)</p>
+          </div>
+          <div class="card">
+            <strong>Respuestas</strong>
+            <p class="muted">31% tasa de respuesta</p>
+          </div>
+          <div class="card">
+            <strong>Conversaciones</strong>
+            <p class="muted">+1.240 en el mes</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:2rem;" aria-labelledby="proyectos-title">
+        <h2 id="proyectos-title">Proyectos en curso</h2>
+        <div class="tickets-list">
+          <div class="ticket-item">
+            <strong>Campaña Onboarding Q1</strong>
+            <div class="ticket-meta">
+              <span>Estado: En progreso</span>
+              <span>Entrega estimada: 20/02</span>
+            </div>
+          </div>
+          <div class="ticket-item">
+            <strong>Warmup de nuevas cuentas</strong>
+            <div class="ticket-meta">
+              <span>Estado: Configuración</span>
+              <span>Entrega estimada: 12/02</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:2rem;" aria-labelledby="billing-title">
+        <h2 id="billing-title">Facturación y pagos</h2>
+        <p class="muted">
+          Próximamente vas a poder gestionar pagos online, facturas y renovaciones desde este panel.
+        </p>
+      </section>
+
       <!-- LICENCIAS (tu app.js ya las carga si existe este contenedor) -->
       <section class="card" style="margin-top:2rem;" aria-labelledby="licencias-title">
         <h2 id="licencias-title">Mis licencias</h2>
@@ -131,6 +180,39 @@
 
         <div id="licenses-list">
           <p class="muted small">Cargando licencias...</p>
+        </div>
+      </section>
+
+      <!-- SOPORTE -->
+      <section class="card" style="margin-top:2rem;" aria-labelledby="soporte-title">
+        <h2 id="soporte-title">Tickets de soporte</h2>
+        <p class="muted">
+          Creá un ticket y seguimos el estado desde acá. Respondemos en menos de 24 hs hábiles.
+        </p>
+
+        <form id="ticket-form" class="auth-form" autocomplete="on">
+          <label>
+            Asunto
+            <input type="text" name="subject" required />
+          </label>
+          <label>
+            Prioridad
+            <select name="priority">
+              <option value="normal">Normal</option>
+              <option value="alta">Alta</option>
+              <option value="critica">Crítica</option>
+            </select>
+          </label>
+          <label>
+            Mensaje
+            <textarea name="message" rows="3" required></textarea>
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">Crear ticket</button>
+          <p id="ticket-msg" class="form-error" hidden></p>
+        </form>
+
+        <div id="tickets-list" class="tickets-list">
+          <p class="muted small">Cargando tickets...</p>
         </div>
       </section>
 
@@ -153,6 +235,19 @@
       </div>
     </div>
   </footer>
+
+  <div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" hidden>
+    <div>
+      <strong>Cookies &amp; privacidad</strong>
+      <p class="muted small">
+        Usamos cookies para analítica y mejorar la experiencia. Podés elegir tus preferencias.
+      </p>
+    </div>
+    <div class="cookie-actions">
+      <button id="cookie-reject" class="btn btn-ghost">Rechazar</button>
+      <button id="cookie-accept" class="btn btn-primary">Aceptar</button>
+    </div>
+  </div>
 
   <script src="app.js" type="module"></script>
 </body>
