@@ -9,6 +9,10 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://hyperionsite.netlify.app/technical.html</loc>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://hyperionsite.netlify.app/about.html</loc>
     <priority>0.6</priority>
   </url>
