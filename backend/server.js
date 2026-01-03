@@ -170,9 +170,27 @@ const DEFAULT_MAX_ACTIVATIONS = 1;
 
 // =========================
 // CORS (configurable)
-@@ -196,50 +233,56 @@ function getPlanLimits(planId) {
+function getPlanLimits(planId) {
   return PLAN_LIMITS[planId] || PLAN_LIMITS.starter;
 }
+
+const CORS_ALLOW_ORIGINS = String(process.env.CORS_ALLOW_ORIGINS || "");
+const CORS_ALLOW_LIST = CORS_ALLOW_ORIGINS.split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || CORS_ALLOW_LIST.length === 0 || CORS_ALLOW_LIST.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  })
+);
 
 function enrichUserForClient(userRow) {
   const planId = getEffectivePlanForUser(userRow.id); // ✅ plan real por licencias
@@ -227,7 +245,6 @@ function getEffectivePlanForUser(userId) {
 // Update policy: /api/app/version
 // (lo usa Electron main.js)
 // =========================
-@@ -264,50 +307,102 @@ app.get("/api/app/version", (req, res) => {
   const minVersion = String(process.env.HYPERION_MIN_VERSION || "0.0.0");
   const latest = String(process.env.HYPERION_LATEST_VERSION || minVersion);
   const downloadUrl = String(process.env.HYPERION_DOWNLOAD_URL || "");
@@ -330,7 +347,6 @@ app.post("/api/auth/register", async (req, res) => {
     const user = enrichUserForClient(userRow);
     const token = createToken(userRow);
 
-@@ -320,50 +415,61 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -392,7 +408,6 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
     return res.status(500).json({ error: "Error interno" });
   }
 });
-@@ -389,50 +495,138 @@ app.get("/api/licenses/my", authMiddleware, (req, res) => {
       .all(req.user.id);
 
     const stmtCount = db.prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?");

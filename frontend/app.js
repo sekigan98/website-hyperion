@@ -1056,39 +1056,79 @@ function initChatWidget() {
   const toggle = document.getElementById("chat-toggle");
   const panel = widget.querySelector(".chat-panel");
   const messages = document.getElementById("chat-messages");
+  const typing = document.getElementById("chat-typing");
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("chat-input");
   const quick1 = document.getElementById("chat-quick-1");
   const quick2 = document.getElementById("chat-quick-2");
 
-  const addMessage = (text) => {
+  const addMessage = (text, variant = "bot") => {
     if (!messages) return;
     const item = document.createElement("div");
-    item.className = "chat-message";
+    item.className = `chat-message chat-message--${variant}`;
     item.textContent = text;
     messages.appendChild(item);
+    messages.scrollTop = messages.scrollHeight;
+  };
+
+  const setTyping = (isVisible) => {
+    if (!typing) return;
+    typing.hidden = !isVisible;
+  };
+
+  const respondWith = (text, delay = 600) => {
+    setTyping(true);
+    window.setTimeout(() => {
+      setTyping(false);
+      addMessage(text, "bot");
+    }, delay);
+  };
+
+  const sendMessage = (userText, replyText) => {
+    if (!userText) return;
+    addMessage(userText, "user");
+    respondWith(replyText);
   };
 
   if (messages && messages.childElementCount === 0) {
-    addMessage("Hola 👋 Soy Hyperion Assistant. ¿En qué te puedo ayudar?");
+    addMessage("Hola 👋 Soy Hyperion Assistant. ¿En qué te puedo ayudar?", "bot");
   }
 
   on(toggle, "click", () => {
     const isOpen = panel && !panel.hasAttribute("hidden");
     if (!panel) return;
     if (isOpen) {
-      panel.setAttribute("hidden", "true");
+      widget.classList.remove("is-open");
+      window.setTimeout(() => {
+        if (!widget.classList.contains("is-open")) {
+          panel.setAttribute("hidden", "true");
+        }
+      }, 200);
       toggle.setAttribute("aria-expanded", "false");
     } else {
       panel.removeAttribute("hidden");
+      window.requestAnimationFrame(() => widget.classList.add("is-open"));
       toggle.setAttribute("aria-expanded", "true");
     }
   });
 
   on(quick1, "click", () => {
-    addMessage("Precios: desde $200 USD / mes según cuentas y soporte. ¿Querés una propuesta?");
+    sendMessage("Quiero precios", "Precios: desde $200 USD / mes según cuentas y soporte. ¿Querés una propuesta?");
   });
 
   on(quick2, "click", () => {
-    addMessage("Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com.");
+    sendMessage(
+      "Necesito soporte",
+      "Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com."
+    );
+  });
+
+  on(form, "submit", (event) => {
+    event.preventDefault();
+    const value = String(input?.value || "").trim();
+    if (!value) return;
+    sendMessage(value, "¡Gracias! Te respondemos en minutos. También podés dejar tu mail.");
+    if (input) input.value = "";
   });
 }
 
