@@ -664,9 +664,20 @@
     <div class="chat-panel" hidden>
       <div class="chat-header">
         <strong>Hyperion Assistant</strong>
-        <span class="muted small">Bot + humano</span>
+        <span class="muted small"><span class="chat-status-dot" aria-hidden="true"></span> Bot + humano</span>
       </div>
       <div id="chat-messages" class="chat-messages"></div>
+      <div id="chat-typing" class="chat-typing" role="status" aria-live="polite" hidden>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="typing-dot"></span>
+        <span class="muted small">Hyperion está escribiendo…</span>
+      </div>
+      <form id="chat-form" class="chat-form">
+        <label class="sr-only" for="chat-input">Escribí tu mensaje</label>
+        <input id="chat-input" name="chat-input" type="text" placeholder="Escribí tu mensaje" autocomplete="off" />
+        <button type="submit" class="btn btn-primary">Enviar</button>
+      </form>
       <div class="chat-actions">
         <button id="chat-quick-1" type="button" class="btn btn-ghost btn-block">Quiero precios</button>
         <button id="chat-quick-2" type="button" class="btn btn-ghost btn-block">Necesito soporte</button>

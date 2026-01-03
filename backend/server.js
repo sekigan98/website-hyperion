@@ -170,7 +170,6 @@ const DEFAULT_MAX_ACTIVATIONS = 1;
 
 // =========================
 // CORS (configurable)
-@@ -196,50 +233,56 @@ function getPlanLimits(planId) {
   return PLAN_LIMITS[planId] || PLAN_LIMITS.starter;
 }
 
@@ -227,7 +226,6 @@ function getEffectivePlanForUser(userId) {
 // Update policy: /api/app/version
 // (lo usa Electron main.js)
 // =========================
-@@ -264,50 +307,102 @@ app.get("/api/app/version", (req, res) => {
   const minVersion = String(process.env.HYPERION_MIN_VERSION || "0.0.0");
   const latest = String(process.env.HYPERION_LATEST_VERSION || minVersion);
   const downloadUrl = String(process.env.HYPERION_DOWNLOAD_URL || "");
@@ -330,7 +328,6 @@ app.post("/api/auth/register", async (req, res) => {
     const user = enrichUserForClient(userRow);
     const token = createToken(userRow);
 
-@@ -320,50 +415,61 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -392,7 +389,6 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
     return res.status(500).json({ error: "Error interno" });
   }
 });
-@@ -389,50 +495,138 @@ app.get("/api/licenses/my", authMiddleware, (req, res) => {
       .all(req.user.id);
 
     const stmtCount = db.prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?");
