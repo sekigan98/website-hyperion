@@ -1059,8 +1059,11 @@ function initChatWidget() {
   const typing = document.getElementById("chat-typing");
   const form = document.getElementById("chat-form");
   const input = document.getElementById("chat-input");
+  const close = document.getElementById("chat-close");
   const quick1 = document.getElementById("chat-quick-1");
   const quick2 = document.getElementById("chat-quick-2");
+  const quick3 = document.getElementById("chat-quick-3");
+  let lastTopic = "";
 
   const addMessage = (text, variant = "bot") => {
     if (!messages) return;
@@ -1076,7 +1079,7 @@ function initChatWidget() {
     typing.hidden = !isVisible;
   };
 
-  const respondWith = (text, delay = 600) => {
+  const respondWith = (text, delay = 650) => {
     setTyping(true);
     window.setTimeout(() => {
       setTyping(false);
@@ -1084,14 +1087,56 @@ function initChatWidget() {
     }, delay);
   };
 
-  const sendMessage = (userText, replyText) => {
+  const sendMessage = (userText, replyText, topic = "") => {
     if (!userText) return;
+    if (topic) lastTopic = topic;
     addMessage(userText, "user");
     respondWith(replyText);
   };
 
+  const getReply = (value) => {
+    const text = String(value || "").toLowerCase();
+    if (/hola|buenas|hey|hello/.test(text)) {
+      lastTopic = "intro";
+      return "¡Hola! Contame si querés ver planes, coordinar una demo o resolver un problema técnico.";
+    }
+    if (/plan|precio|costo|valor|tarifa/.test(text)) {
+      lastTopic = "pricing";
+      return "Planes: Starter $0, Pro $79, Agency $299 y Lifetime $699. ¿Querés que te recomiende según cuentas y volumen?";
+    }
+    if (/demo|consulta|reunión|agenda|agendar/.test(text)) {
+      lastTopic = "demo";
+      return "Podemos coordinar una demo corta y dejarte un plan de implementación. ¿Qué tipo de equipo tenés?";
+    }
+    if (/soporte|ayuda|error|problema|ticket/.test(text)) {
+      lastTopic = "support";
+      return "Para soporte, podés abrir un ticket desde el dashboard o escribir a soporte@hyperion.com. ¿Qué pasó exactamente?";
+    }
+    if (/licencia|activar|activación|instalar|instalación/.test(text)) {
+      lastTopic = "license";
+      return "La licencia se genera al crear tu cuenta y se activa dentro de Hyperion Client. ¿Querés la guía rápida?";
+    }
+    if (/windows|mac|linux|descarga/.test(text)) {
+      lastTopic = "download";
+      return "La versión principal es Windows. macOS y Linux están en roadmap. ¿Querés el link de descarga?";
+    }
+    if (lastTopic === "pricing") {
+      return "Si me decís cuántas cuentas y volumen mensual, te sugiero el plan ideal.";
+    }
+    if (lastTopic === "demo") {
+      return "Perfecto. Sumá cuántas personas usan la herramienta y el objetivo principal.";
+    }
+    if (lastTopic === "support") {
+      return "¿Podés contarme el error exacto o en qué paso se trabó?";
+    }
+    return "Entiendo. Contame un poco más: ¿cuántas cuentas manejás y qué objetivo buscás?";
+  };
+
   if (messages && messages.childElementCount === 0) {
-    addMessage("Hola 👋 Soy Hyperion Assistant. ¿En qué te puedo ayudar?", "bot");
+    addMessage(
+      "Hola 👋 Soy Hyperion Assistant. Puedo ayudarte con planes, licencias, soporte o demos. ¿Qué necesitás?",
+      "bot"
+    );
   }
 
   on(toggle, "click", () => {
@@ -1112,14 +1157,34 @@ function initChatWidget() {
     }
   });
 
+  on(close, "click", () => {
+    if (!panel) return;
+    widget.classList.remove("is-open");
+    window.setTimeout(() => {
+      if (!widget.classList.contains("is-open")) {
+        panel.setAttribute("hidden", "true");
+      }
+    }, 200);
+    toggle.setAttribute("aria-expanded", "false");
+  });
+
   on(quick1, "click", () => {
-    sendMessage("Quiero precios", "Precios: desde $200 USD / mes según cuentas y soporte. ¿Querés una propuesta?");
+    sendMessage(
+      "Ver planes",
+      "Te comparto los planes y beneficios clave. ¿Cuántas cuentas necesitás manejar?",
+      "pricing"
+    );
   });
 
   on(quick2, "click", () => {
+    sendMessage("Agendar demo", "Perfecto. ¿Qué tipo de equipo sos y cuál es tu objetivo principal?", "demo");
+  });
+
+  on(quick3, "click", () => {
     sendMessage(
-      "Necesito soporte",
-      "Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com."
+      "Soporte",
+      "Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com.",
+      "support"
     );
   });
 
@@ -1127,7 +1192,7 @@ function initChatWidget() {
     event.preventDefault();
     const value = String(input?.value || "").trim();
     if (!value) return;
-    sendMessage(value, "¡Gracias! Te respondemos en minutos. También podés dejar tu mail.");
+    sendMessage(value, getReply(value));
     if (input) input.value = "";
   });
 }

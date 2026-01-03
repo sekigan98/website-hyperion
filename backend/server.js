@@ -11,6 +11,9 @@ app.set("trust proxy", 1);
 
 const PORT = process.env.PORT || 4000;
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // ⚠️ En producción: SI O SI setearlos como env vars (no hardcode)
 const JWT_SECRET = process.env.JWT_SECRET || "guk26ljOkyzbusaV7uK0ilw4s1b0AO3762AHxDiOrQw=";
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998";
@@ -192,6 +195,52 @@ app.use(
   })
 );
 
+function createToken(userRow) {
+  return jwt.sign({ id: userRow.id, email: userRow.email }, JWT_SECRET, { expiresIn: "30d" });
+}
+
+function authMiddleware(req, res, next) {
+  const header = String(req.headers.authorization || "");
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token) return res.status(401).json({ error: "Token requerido" });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.user = payload;
+    return next();
+  } catch (err) {
+    return res.status(401).json({ error: "Token inválido" });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  const key =
+    req.headers["x-admin-api-key"] ||
+    req.headers["x-admin-key"] ||
+    req.query.admin_key ||
+    req.query.api_key;
+  if (!key || key !== ADMIN_API_KEY) return res.status(403).json({ error: "No autorizado" });
+  return next();
+}
+
+function generateLicenseKey() {
+  const raw = crypto.randomBytes(8).toString("hex").toUpperCase();
+  return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}`;
+}
+
+function cmpSemver(a, b) {
+  const pa = String(a || "0.0.0")
+    .split(".")
+    .map((n) => Number.parseInt(n, 10) || 0);
+  const pb = String(b || "0.0.0")
+    .split(".")
+    .map((n) => Number.parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i += 1) {
+    if (pa[i] > pb[i]) return 1;
+    if (pa[i] < pb[i]) return -1;
+  }
+  return 0;
+}
+
 function enrichUserForClient(userRow) {
   const planId = getEffectivePlanForUser(userRow.id); // ✅ plan real por licencias
   const limits = getPlanLimits(planId);
@@ -245,6 +294,8 @@ function getEffectivePlanForUser(userId) {
 // Update policy: /api/app/version
 // (lo usa Electron main.js)
 // =========================
+app.get("/api/app/version", (req, res) => {
+  const current = String(req.query.current || req.query.version || req.headers["x-app-version"] || "0.0.0");
   const minVersion = String(process.env.HYPERION_MIN_VERSION || "0.0.0");
   const latest = String(process.env.HYPERION_LATEST_VERSION || minVersion);
   const downloadUrl = String(process.env.HYPERION_DOWNLOAD_URL || "");
@@ -347,6 +398,13 @@ app.post("/api/auth/register", async (req, res) => {
     const user = enrichUserForClient(userRow);
     const token = createToken(userRow);
 
+    return res.json({ token, user });
+  } catch (err) {
+    console.error("Error en /api/auth/register", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
 
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -408,6 +466,11 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
     return res.status(500).json({ error: "Error interno" });
   }
 });
+
+app.get("/api/licenses/my", authMiddleware, (req, res) => {
+  try {
+    const rows = db
+      .prepare("SELECT * FROM licenses WHERE user_id = ? ORDER BY created_at DESC")
       .all(req.user.id);
 
     const stmtCount = db.prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?");
