@@ -32,6 +32,68 @@
   --focus: rgba(168, 85, 247, 0.85);
 
   --bg-gradient: radial-gradient(circle at top, #1e293b, #020617 55%);
+
+  /* UI surfaces */
+  --header-gradient-start: rgba(15, 23, 42, 0.92);
+  --header-gradient-mid: rgba(15, 23, 42, 0.72);
+  --header-gradient-end: rgba(15, 23, 42, 0.05);
+  --header-border: rgba(148, 163, 184, 0.14);
+  --header-minimal-bg: rgba(15, 23, 42, 0.55);
+  --nav-hover: rgba(229, 231, 235, 0.88);
+
+  --btn-outline-border: rgba(148, 163, 184, 0.35);
+  --btn-outline-bg: rgba(15, 23, 42, 0.48);
+  --btn-outline-hover-bg: rgba(15, 23, 42, 0.86);
+  --btn-ghost-bg: rgba(15, 23, 42, 0.18);
+  --btn-ghost-hover-bg: rgba(15, 23, 42, 0.7);
+  --btn-ghost-hover-text: rgba(229, 231, 235, 0.92);
+
+  --hero-meta-border: rgba(148, 163, 184, 0.26);
+  --hero-card-border: rgba(148, 163, 184, 0.28);
+  --hero-card-bg: radial-gradient(
+    circle at top,
+    rgba(144, 5, 187, 0.16),
+    rgba(15, 23, 42, 0.95)
+  );
+  --hero-tag-bg: rgba(15, 23, 42, 0.9);
+  --hero-tag-border: rgba(148, 163, 184, 0.35);
+  --hero-card-body-bg: rgba(15, 23, 42, 0.96);
+
+  --section-alt-bg: radial-gradient(circle at top, rgba(144, 5, 187, 0.1), #020617);
+
+  --card-bg: radial-gradient(
+    circle at top left,
+    rgba(15, 23, 42, 0.88),
+    rgba(15, 23, 42, 0.98)
+  );
+  --card-hover-border: rgba(168, 85, 247, 0.35);
+  --card-hover-shadow: 0 18px 60px rgba(0, 0, 0, 0.52);
+
+  --pricing-badge-bg: rgba(15, 23, 42, 0.9);
+  --pricing-badge-border: rgba(148, 163, 184, 0.35);
+  --badge-accent-bg: rgba(144, 5, 187, 0.18);
+  --badge-accent-text: rgba(229, 231, 235, 0.92);
+
+  --faq-bg: rgba(15, 23, 42, 0.88);
+  --faq-summary-color: rgba(229, 231, 235, 0.92);
+
+  --footer-border: rgba(148, 163, 184, 0.18);
+  --footer-link-hover: rgba(229, 231, 235, 0.9);
+
+  --auth-card-bg: radial-gradient(circle at top, rgba(144, 5, 187, 0.12), rgba(2, 6, 23, 0.98));
+  --input-placeholder: rgba(229, 231, 235, 0.45);
+  --input-focus-border: rgba(168, 85, 247, 0.85);
+  --input-focus-shadow: 0 0 0 4px rgba(168, 85, 247, 0.16);
+
+  --pricing-inline-bg: rgba(15, 23, 42, 0.78);
+  --license-item-bg: rgba(15, 23, 42, 0.76);
+  --license-status-bg: rgba(2, 6, 23, 0.55);
+  --license-status-dot: rgba(148, 163, 184, 0.8);
+  --license-status-text: rgba(229, 231, 235, 0.92);
+
+  --skip-link-bg: rgba(15, 23, 42, 0.95);
+  --skip-link-border: rgba(148, 163, 184, 0.35);
+  --skip-link-text: #e5e7eb;
 }
 
 :root[data-theme="light"] {
@@ -47,6 +109,67 @@
   --accent-strong: #6d28d9;
   --accent-soft: rgba(124, 58, 237, 0.15);
   --bg-gradient: radial-gradient(circle at top, #e2e8f0, #f8fafc 65%);
+
+  --header-gradient-start: rgba(248, 250, 252, 0.96);
+  --header-gradient-mid: rgba(248, 250, 252, 0.78);
+  --header-gradient-end: rgba(248, 250, 252, 0.1);
+  --header-border: rgba(15, 23, 42, 0.12);
+  --header-minimal-bg: rgba(248, 250, 252, 0.86);
+  --nav-hover: rgba(15, 23, 42, 0.85);
+
+  --btn-outline-border: rgba(15, 23, 42, 0.18);
+  --btn-outline-bg: rgba(255, 255, 255, 0.7);
+  --btn-outline-hover-bg: rgba(255, 255, 255, 0.95);
+  --btn-ghost-bg: rgba(15, 23, 42, 0.06);
+  --btn-ghost-hover-bg: rgba(124, 58, 237, 0.12);
+  --btn-ghost-hover-text: var(--text);
+
+  --hero-meta-border: rgba(15, 23, 42, 0.18);
+  --hero-card-border: rgba(15, 23, 42, 0.16);
+  --hero-card-bg: radial-gradient(
+    circle at top,
+    rgba(124, 58, 237, 0.16),
+    rgba(255, 255, 255, 0.98)
+  );
+  --hero-tag-bg: rgba(255, 255, 255, 0.9);
+  --hero-tag-border: rgba(15, 23, 42, 0.2);
+  --hero-card-body-bg: rgba(255, 255, 255, 0.96);
+
+  --section-alt-bg: radial-gradient(circle at top, rgba(124, 58, 237, 0.08), #f1f5f9);
+
+  --card-bg: radial-gradient(
+    circle at top left,
+    rgba(255, 255, 255, 0.96),
+    rgba(248, 250, 252, 0.98)
+  );
+  --card-hover-border: rgba(124, 58, 237, 0.35);
+  --card-hover-shadow: 0 18px 60px rgba(15, 23, 42, 0.12);
+
+  --pricing-badge-bg: rgba(255, 255, 255, 0.92);
+  --pricing-badge-border: rgba(15, 23, 42, 0.16);
+  --badge-accent-bg: rgba(124, 58, 237, 0.12);
+  --badge-accent-text: var(--text);
+
+  --faq-bg: rgba(255, 255, 255, 0.92);
+  --faq-summary-color: var(--text);
+
+  --footer-border: rgba(15, 23, 42, 0.1);
+  --footer-link-hover: rgba(15, 23, 42, 0.85);
+
+  --auth-card-bg: radial-gradient(circle at top, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.98));
+  --input-placeholder: rgba(15, 23, 42, 0.45);
+  --input-focus-border: rgba(124, 58, 237, 0.6);
+  --input-focus-shadow: 0 0 0 4px rgba(124, 58, 237, 0.16);
+
+  --pricing-inline-bg: rgba(255, 255, 255, 0.9);
+  --license-item-bg: rgba(255, 255, 255, 0.9);
+  --license-status-bg: rgba(248, 250, 252, 0.9);
+  --license-status-dot: rgba(15, 23, 42, 0.35);
+  --license-status-text: var(--text);
+
+  --skip-link-bg: rgba(255, 255, 255, 0.96);
+  --skip-link-border: rgba(15, 23, 42, 0.18);
+  --skip-link-text: var(--text);
 }
 
 *,
@@ -124,16 +247,16 @@ input {
   backdrop-filter: blur(16px);
   background: linear-gradient(
     to bottom,
-    rgba(15, 23, 42, 0.92),
-    rgba(15, 23, 42, 0.72),
-    rgba(15, 23, 42, 0.05)
+    var(--header-gradient-start),
+    var(--header-gradient-mid),
+    var(--header-gradient-end)
   );
-  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  border-bottom: 1px solid var(--header-border);
 }
 
 .site-header.minimal {
   position: static;
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--header-minimal-bg);
 }
 
 .header-inner {
@@ -189,7 +312,7 @@ input {
 }
 
 .main-nav a:hover {
-  color: rgba(229, 231, 235, 0.88);
+  color: var(--nav-hover);
 }
 
 .main-nav a:hover::after {
@@ -246,25 +369,25 @@ input {
 }
 
 .btn-outline {
-  border-color: rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.48);
+  border-color: var(--btn-outline-border);
+  background: var(--btn-outline-bg);
   color: var(--text);
 }
 
 .btn-outline:hover {
   border-color: rgba(168, 85, 247, 0.85);
-  background: rgba(15, 23, 42, 0.86);
+  background: var(--btn-outline-hover-bg);
 }
 
 .btn-ghost {
   border-color: transparent;
-  background: rgba(15, 23, 42, 0.18);
+  background: var(--btn-ghost-bg);
   color: var(--text-soft);
 }
 
 .btn-ghost:hover {
-  background: rgba(15, 23, 42, 0.7);
-  color: rgba(229, 231, 235, 0.92);
+  background: var(--btn-ghost-hover-bg);
+  color: var(--btn-ghost-hover-text);
 }
 
 .btn-block {
@@ -322,18 +445,14 @@ input {
 .hero-meta span {
   padding: 0.25rem 0.7rem;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.26);
+  border: 1px solid var(--hero-meta-border);
   background: radial-gradient(circle at top left, var(--accent-soft), transparent);
 }
 
 .hero-card {
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  background: radial-gradient(
-    circle at top,
-    rgba(144, 5, 187, 0.16),
-    rgba(15, 23, 42, 0.95)
-  );
+  border: 1px solid var(--hero-card-border);
+  background: var(--hero-card-bg);
   box-shadow: var(--shadow-soft);
   padding: 0.45rem;
   position: relative;
@@ -347,14 +466,14 @@ input {
   font-size: 0.75rem;
   padding: 0.18rem 0.6rem;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: var(--hero-tag-bg);
+  border: 1px solid var(--hero-tag-border);
   color: var(--text-soft);
 }
 
 .hero-card-body {
   border-radius: calc(var(--radius-lg) - 4px);
-  background: rgba(15, 23, 42, 0.96);
+  background: var(--hero-card-body-bg);
   padding: 1.5rem 1.4rem;
 }
 
@@ -396,7 +515,7 @@ input {
 }
 
 .section-alt {
-  background: radial-gradient(circle at top, rgba(144, 5, 187, 0.10), #020617);
+  background: var(--section-alt-bg);
 }
 
 .section-title {
@@ -452,15 +571,15 @@ input {
 .card {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: radial-gradient(circle at top left, rgba(15, 23, 42, 0.88), rgba(15, 23, 42, 0.98));
+  background: var(--card-bg);
   padding: 1.25rem 1.25rem;
   box-shadow: var(--shadow-card);
   transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .card:hover {
-  border-color: rgba(168, 85, 247, 0.35);
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.52);
+  border-color: var(--card-hover-border);
+  box-shadow: var(--card-hover-shadow);
   transform: translateY(-1px);
 }
 
@@ -499,15 +618,15 @@ input {
   font-size: 0.75rem;
   padding: 0.18rem 0.6rem;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
+  border: 1px solid var(--pricing-badge-border);
   color: var(--text-soft);
-  background: rgba(15, 23, 42, 0.9);
+  background: var(--pricing-badge-bg);
 }
 
 .badge-accent {
   border-color: rgba(168, 85, 247, 0.65) !important;
-  color: rgba(229, 231, 235, 0.92) !important;
-  background: rgba(144, 5, 187, 0.18) !important;
+  color: var(--badge-accent-text) !important;
+  background: var(--badge-accent-bg) !important;
 }
 
 .pricing-card h3 {
@@ -556,14 +675,14 @@ input {
 .faq-item {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.88);
+  background: var(--faq-bg);
   padding: 0.8rem 0.95rem;
 }
 
 .faq-item summary {
   cursor: pointer;
   font-weight: 700;
-  color: rgba(229, 231, 235, 0.92);
+  color: var(--faq-summary-color);
 }
 
 .faq-item summary::-webkit-details-marker {
@@ -597,7 +716,7 @@ input {
   FOOTER
 ------------------------------------------------------------ */
 .site-footer {
-  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  border-top: 1px solid var(--footer-border);
   margin-top: 2.5rem;
 }
 
@@ -616,7 +735,7 @@ input {
 }
 
 .footer-right a:hover {
-  color: rgba(229, 231, 235, 0.9);
+  color: var(--footer-link-hover);
 }
 
 /* ------------------------------------------------------------
@@ -652,7 +771,7 @@ input {
   max-width: 440px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
-  background: radial-gradient(circle at top, rgba(144, 5, 187, 0.12), rgba(2, 6, 23, 0.98));
+  background: var(--auth-card-bg);
   padding: 1.85rem 1.65rem 1.65rem;
   box-shadow: var(--shadow-soft);
 }
@@ -703,7 +822,7 @@ input {
 .auth-form input::placeholder,
 .contact-card input::placeholder,
 .newsletter-form input::placeholder {
-  color: rgba(229, 231, 235, 0.45);
+  color: var(--input-placeholder);
 }
 
 .auth-form input:focus,
@@ -716,8 +835,8 @@ input {
 .quote-card select:focus,
 .newsletter-form input:focus {
   outline: none;
-  border-color: rgba(168, 85, 247, 0.85);
-  box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.16);
+  border-color: var(--input-focus-border);
+  box-shadow: var(--input-focus-shadow);
   background: var(--surface-strong);
 }
 
@@ -727,7 +846,7 @@ input {
 }
 
 .auth-footer a:hover {
-  color: rgba(229, 231, 235, 0.92);
+  color: var(--nav-hover);
 }
 
 .form-error {
@@ -750,7 +869,7 @@ input {
   padding: 0.38rem 0.75rem;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.78);
+  background: var(--pricing-inline-bg);
 }
 
 /* ------------------------------------------------------------
@@ -758,7 +877,7 @@ input {
 ------------------------------------------------------------ */
 .license-item {
   border: 1px solid var(--border);
-  background: rgba(15, 23, 42, 0.76);
+  background: var(--license-item-bg);
   border-radius: var(--radius-md);
   padding: 0.95rem 1rem;
   margin-top: 0.85rem;
@@ -799,7 +918,7 @@ input {
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: rgba(2, 6, 23, 0.55);
+  background: var(--license-status-bg);
   font-weight: 700;
 }
 
@@ -808,24 +927,24 @@ input {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.8);
+  background: var(--license-status-dot);
 }
 
 .license-status-active {
   border-color: rgba(34, 197, 94, 0.35);
-  color: rgba(229, 231, 235, 0.92);
+  color: var(--license-status-text);
 }
 .license-status-active::before { background: rgba(34, 197, 94, 0.9); }
 
 .license-status-expired {
   border-color: rgba(245, 158, 11, 0.35);
-  color: rgba(229, 231, 235, 0.92);
+  color: var(--license-status-text);
 }
 .license-status-expired::before { background: rgba(245, 158, 11, 0.9); }
 
 .license-status-revoked {
   border-color: rgba(239, 68, 68, 0.35);
-  color: rgba(229, 231, 235, 0.92);
+  color: var(--license-status-text);
 }
 .license-status-revoked::before { background: rgba(239, 68, 68, 0.9); }
 
@@ -892,9 +1011,9 @@ input {
   top: 12px;
   padding: 10px 14px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  color: #e5e7eb;
+  background: var(--skip-link-bg);
+  border: 1px solid var(--skip-link-border);
+  color: var(--skip-link-text);
   z-index: 9999;
 }
 
@@ -1111,6 +1230,10 @@ input {
   gap: 0.75rem;
 }
 
+.chat-panel[hidden] {
+  display: none;
+}
+
 .chat-header {
   display: flex;
   flex-direction: column;
@@ -1154,6 +1277,10 @@ input {
   justify-content: space-between;
   gap: 1rem;
   z-index: 95;
+}
+
+.cookie-banner[hidden] {
+  display: none;
 }
 
 .cookie-actions {
