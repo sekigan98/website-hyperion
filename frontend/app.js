@@ -1061,6 +1061,7 @@ function initChatWidget() {
   const input = document.getElementById("chat-input");
   const quick1 = document.getElementById("chat-quick-1");
   const quick2 = document.getElementById("chat-quick-2");
+  const quick3 = document.getElementById("chat-quick-3");
 
   const addMessage = (text, variant = "bot") => {
     if (!messages) return;
@@ -1076,7 +1077,7 @@ function initChatWidget() {
     typing.hidden = !isVisible;
   };
 
-  const respondWith = (text, delay = 600) => {
+  const respondWith = (text, delay = 650) => {
     setTyping(true);
     window.setTimeout(() => {
       setTyping(false);
@@ -1090,8 +1091,31 @@ function initChatWidget() {
     respondWith(replyText);
   };
 
+  const getReply = (value) => {
+    const text = String(value || "").toLowerCase();
+    if (/plan|precio|costo|valor|tarifa/.test(text)) {
+      return "Planes: Starter $0, Pro $79, Agency $299 y Lifetime $699. ¿Querés que te recomiende según cuentas y volumen?";
+    }
+    if (/demo|consulta|reunión|agenda|agendar/.test(text)) {
+      return "Podemos coordinar una demo corta y dejarte un plan de implementación. ¿Qué tipo de equipo tenés?";
+    }
+    if (/soporte|ayuda|error|problema|ticket/.test(text)) {
+      return "Para soporte, podés abrir un ticket desde el dashboard o escribir a soporte@hyperion.com. ¿Qué pasó exactamente?";
+    }
+    if (/licencia|activar|activación|instalar|instalación/.test(text)) {
+      return "La licencia se genera al crear tu cuenta y se activa dentro de Hyperion Client. ¿Querés la guía rápida?";
+    }
+    if (/windows|mac|linux|descarga/.test(text)) {
+      return "La versión principal es Windows. macOS y Linux están en roadmap. ¿Querés el link de descarga?";
+    }
+    return "Entiendo. Contame un poco más: ¿cuántas cuentas manejás y qué objetivo buscás?";
+  };
+
   if (messages && messages.childElementCount === 0) {
-    addMessage("Hola 👋 Soy Hyperion Assistant. ¿En qué te puedo ayudar?", "bot");
+    addMessage(
+      "Hola 👋 Soy Hyperion Assistant. Puedo ayudarte con planes, licencias, soporte o demos. ¿Qué necesitás?",
+      "bot"
+    );
   }
 
   on(toggle, "click", () => {
@@ -1113,12 +1137,16 @@ function initChatWidget() {
   });
 
   on(quick1, "click", () => {
-    sendMessage("Quiero precios", "Precios: desde $200 USD / mes según cuentas y soporte. ¿Querés una propuesta?");
+    sendMessage("Ver planes", "Te comparto los planes y beneficios clave. ¿Querés que te recomiende el ideal?");
   });
 
   on(quick2, "click", () => {
+    sendMessage("Agendar demo", "Perfecto. Contame cuántas cuentas y qué volumen mensual estimás.");
+  });
+
+  on(quick3, "click", () => {
     sendMessage(
-      "Necesito soporte",
+      "Soporte",
       "Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com."
     );
   });
@@ -1127,7 +1155,7 @@ function initChatWidget() {
     event.preventDefault();
     const value = String(input?.value || "").trim();
     if (!value) return;
-    sendMessage(value, "¡Gracias! Te respondemos en minutos. También podés dejar tu mail.");
+    sendMessage(value, getReply(value));
     if (input) input.value = "";
   });
 }
