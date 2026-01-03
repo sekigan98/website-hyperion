@@ -170,8 +170,10 @@ const DEFAULT_MAX_ACTIVATIONS = 1;
 
 // =========================
 // CORS (configurable)
-@@ -196,50 +233,56 @@ function getPlanLimits(planId) {
-  return PLAN_LIMITS[planId] || PLAN_LIMITS.starter;
+
+function getPlanLimits(planId) {
+  const key = String(planId || "starter").toLowerCase();
+  return PLAN_LIMITS[key] || PLAN_LIMITS.starter;
 }
 
 function enrichUserForClient(userRow) {
