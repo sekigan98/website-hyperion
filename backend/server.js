@@ -50,6 +50,43 @@ CREATE TABLE IF NOT EXISTS license_activations (
   UNIQUE(license_id, install_id),
   FOREIGN KEY(license_id) REFERENCES licenses(id)
 );
+
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  company TEXT,
+  message TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  source TEXT,
+  status TEXT DEFAULT 'active',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tickets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  subject TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  priority TEXT NOT NULL DEFAULT 'normal',
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS ticket_messages (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ticket_id INTEGER NOT NULL,
+  sender TEXT NOT NULL DEFAULT 'user',
+  message TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(ticket_id) REFERENCES tickets(id)
+);
 `);
 
 // =========================
@@ -75,7 +112,7 @@ const PLANS = [
     id: "pro",
     name: "Pro",
     tag: "Recomendado",
-    price: "$0",
+    price: "$79",
     price_suffix: "/ mes",
     highlight: true,
     cta: "Probar Hyperion Pro",
@@ -91,7 +128,7 @@ const PLANS = [
     id: "lifetime",
     name: "Lifetime",
     tag: "Pago único",
-    price: "$0",
+    price: "$699",
     price_suffix: "pago único",
     highlight: false,
     cta: "Comprar licencia Lifetime",
@@ -107,7 +144,7 @@ const PLANS = [
     id: "agency",
     name: "Agency",
     tag: "Agencias",
-    price: "$0",
+    price: "$299",
     price_suffix: "/ mes",
     highlight: false,
     cta: "Hablar con ventas",
@@ -218,6 +255,12 @@ function isLicenseActiveNow(l) {
   return Date.parse(l.expires_at) > Date.now();
 }
 
+function isValidEmail(email) {
+  const value = String(email || "").trim().toLowerCase();
+  if (!value) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 // prioridad (ajustala a tu gusto)
 const PLAN_RANK = { starter: 0, pro: 1, lifetime: 2, agency: 3 };
 
@@ -286,6 +329,58 @@ app.get("/api/app/version", (req, res) => {
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/plans", (_req, res) => res.json({ plans: PLANS }));
 
+app.post("/api/contact", (req, res) => {
+  try {
+    const { name, email, company, message } = req.body || {};
+    if (!name || !email || !message) {
+      return res.status(400).json({ ok: false, error: "Nombre, email y mensaje son requeridos" });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ ok: false, error: "Email inválido" });
+    }
+
+    const nowIso = new Date().toISOString();
+    const info = db
+      .prepare(
+        `INSERT INTO contact_messages (name, email, company, message, created_at)
+         VALUES (?,?,?,?,?)`
+      )
+      .run(String(name).trim(), String(email).trim().toLowerCase(), company || null, String(message).trim(), nowIso);
+
+    return res.json({ ok: true, id: info.lastInsertRowid });
+  } catch (err) {
+    console.error("Error en /api/contact", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+app.post("/api/newsletter", (req, res) => {
+  try {
+    const { email, source } = req.body || {};
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ ok: false, error: "Email inválido" });
+    }
+
+    const stmt = db.prepare(
+      `INSERT INTO newsletter_subscribers (email, source, status, created_at)
+       VALUES (?,?,?,?)`
+    );
+    try {
+      stmt.run(String(email).trim().toLowerCase(), source || "site", "active", new Date().toISOString());
+    } catch (err) {
+      if (String(err?.message || "").includes("UNIQUE")) {
+        return res.json({ ok: true, status: "already_subscribed" });
+      }
+      throw err;
+    }
+
+    return res.json({ ok: true, status: "subscribed" });
+  } catch (err) {
+    console.error("Error en /api/newsletter", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
 // =========================
 // Auth: registro / login
 // =========================
@@ -340,6 +435,17 @@ app.post("/api/auth/login", async (req, res) => {
     console.error("Error en /api/auth/login", err);
     return res.status(500).json({ error: "Error interno" });
   }
+});
+
+app.get("/api/auth/oauth/:provider", (req, res) => {
+  const provider = String(req.params.provider || "").toLowerCase();
+  if (!["google", "github"].includes(provider)) {
+    return res.status(400).json({ error: "Proveedor inválido" });
+  }
+  return res.status(501).json({
+    error: "OAuth no configurado. Definí credenciales para habilitar login social.",
+    provider,
+  });
 });
 
 app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
@@ -407,6 +513,94 @@ app.get("/api/licenses/my", authMiddleware, (req, res) => {
     return res.json({ licenses: response });
   } catch (err) {
     console.error("Error en /api/licenses/my", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+// =========================
+// Tickets / Soporte
+// =========================
+app.get("/api/tickets", authMiddleware, (req, res) => {
+  try {
+    const tickets = db
+      .prepare("SELECT * FROM tickets WHERE user_id = ? ORDER BY updated_at DESC")
+      .all(req.user.id);
+
+    const msgStmt = db.prepare("SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC");
+
+    const response = tickets.map((t) => ({
+      id: t.id,
+      subject: t.subject,
+      status: t.status,
+      priority: t.priority,
+      createdAt: t.created_at,
+      updatedAt: t.updated_at,
+      messages: msgStmt.all(t.id).map((m) => ({
+        id: m.id,
+        sender: m.sender,
+        message: m.message,
+        createdAt: m.created_at,
+      })),
+    }));
+
+    return res.json({ tickets: response });
+  } catch (err) {
+    console.error("Error en /api/tickets", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.post("/api/tickets", authMiddleware, (req, res) => {
+  try {
+    const { subject, message, priority } = req.body || {};
+    if (!subject || !message) {
+      return res.status(400).json({ error: "Asunto y mensaje son requeridos" });
+    }
+
+    const nowIso = new Date().toISOString();
+    const info = db
+      .prepare(
+        `INSERT INTO tickets (user_id, subject, status, priority, created_at, updated_at)
+         VALUES (?,?,?,?,?,?)`
+      )
+      .run(req.user.id, String(subject).trim(), "open", String(priority || "normal"), nowIso, nowIso);
+
+    db.prepare(
+      `INSERT INTO ticket_messages (ticket_id, sender, message, created_at)
+       VALUES (?,?,?,?)`
+    ).run(info.lastInsertRowid, "user", String(message).trim(), nowIso);
+
+    return res.json({ ok: true, id: info.lastInsertRowid });
+  } catch (err) {
+    console.error("Error en /api/tickets", err);
+    return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.post("/api/tickets/:id/reply", authMiddleware, (req, res) => {
+  try {
+    const ticketId = Number(req.params.id);
+    const { message } = req.body || {};
+    if (!ticketId || !message) {
+      return res.status(400).json({ error: "Mensaje requerido" });
+    }
+
+    const ticket = db
+      .prepare("SELECT * FROM tickets WHERE id = ? AND user_id = ?")
+      .get(ticketId, req.user.id);
+    if (!ticket) return res.status(404).json({ error: "Ticket no encontrado" });
+
+    const nowIso = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO ticket_messages (ticket_id, sender, message, created_at)
+       VALUES (?,?,?,?)`
+    ).run(ticketId, "user", String(message).trim(), nowIso);
+
+    db.prepare("UPDATE tickets SET updated_at = ? WHERE id = ?").run(nowIso, ticketId);
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("Error en /api/tickets/:id/reply", err);
     return res.status(500).json({ error: "Error interno" });
   }
 });
