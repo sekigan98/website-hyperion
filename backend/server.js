@@ -170,66 +170,7 @@ const DEFAULT_MAX_ACTIVATIONS = 1;
 
 // =========================
 // CORS (configurable)
-// =========================
-function parseCorsOrigins() {
-  const raw = String(process.env.CORS_ORIGINS || "").trim();
-  if (!raw) return null; // null => permite todo (para arranque rápido)
-  return raw.split(",").map((s) => s.trim()).filter(Boolean);
-}
-
-const allowList = parseCorsOrigins();
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      if (!allowList) return cb(null, true);
-      if (!origin) return cb(null, true); // curl/postman
-      const ok = allowList.includes(origin);
-      return cb(ok ? null : new Error("CORS blocked"), ok);
-    },
-  })
-);
-
-app.use(express.json());
-
-// =========================
-// Helpers
-// =========================
-function createToken(user) {
-  return jwt.sign(
-    { id: user.id, email: user.email, plan: user.plan || "starter" },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-}
-
-function authMiddleware(req, res, next) {
-  const auth = req.headers.authorization || "";
-  const [, token] = auth.split(" ");
-  if (!token) return res.status(401).json({ error: "No autorizado" });
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = payload;
-    next();
-  } catch {
-    return res.status(401).json({ error: "Token inválido o expirado" });
-  }
-}
-
-function requireAdmin(req, res, next) {
-  const key = req.headers["x-admin-key"];
-  if (!key || key !== ADMIN_API_KEY) {
-    return res.status(403).json({ error: "Admin API key inválida" });
-  }
-  next();
-}
-
-function generateLicenseKey(planId = "pro") {
-  const segment = () => crypto.randomBytes(3).toString("hex").toUpperCase();
-  return `HYP-${String(planId).toUpperCase()}-${segment()}-${segment()}`;
-}
-
-function getPlanLimits(planId) {
+@@ -196,50 +233,56 @@ function getPlanLimits(planId) {
   return PLAN_LIMITS[planId] || PLAN_LIMITS.starter;
 }
 
@@ -286,24 +227,7 @@ function getEffectivePlanForUser(userId) {
 // Update policy: /api/app/version
 // (lo usa Electron main.js)
 // =========================
-function semverParts(v) {
-  const core = String(v || "0.0.0").trim().split(/[+-]/)[0];
-  const p = core.split(".").map((x) => parseInt(x, 10));
-  while (p.length < 3) p.push(0);
-  return p.slice(0, 3).map((n) => (Number.isFinite(n) ? n : 0));
-}
-function cmpSemver(a, b) {
-  const A = semverParts(a);
-  const B = semverParts(b);
-  for (let i = 0; i < 3; i++) {
-    if (A[i] < B[i]) return -1;
-    if (A[i] > B[i]) return 1;
-  }
-  return 0;
-}
-
-app.get("/api/app/version", (req, res) => {
-  const current = String(req.query.current || "0.0.0");
+@@ -264,50 +307,102 @@ app.get("/api/app/version", (req, res) => {
   const minVersion = String(process.env.HYPERION_MIN_VERSION || "0.0.0");
   const latest = String(process.env.HYPERION_LATEST_VERSION || minVersion);
   const downloadUrl = String(process.env.HYPERION_DOWNLOAD_URL || "");
@@ -406,12 +330,7 @@ app.post("/api/auth/register", async (req, res) => {
     const user = enrichUserForClient(userRow);
     const token = createToken(userRow);
 
-    return res.json({ token, user });
-  } catch (err) {
-    console.error("Error en /api/auth/register", err);
-    return res.status(500).json({ error: "Error interno" });
-  }
-});
+@@ -320,50 +415,61 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   try {
@@ -473,25 +392,7 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
     return res.status(500).json({ error: "Error interno" });
   }
 });
-
-// =========================
-// Usuario logueado
-// =========================
-app.get("/api/me", authMiddleware, (req, res) => {
-  try {
-    const userRow = db.prepare("SELECT id, email, plan FROM users WHERE id = ?").get(req.user.id);
-    if (!userRow) return res.status(404).json({ error: "Usuario no encontrado" });
-    return res.json({ user: enrichUserForClient(userRow) });
-  } catch (err) {
-    console.error("Error en /api/me", err);
-    return res.status(500).json({ error: "Error interno" });
-  }
-});
-
-app.get("/api/licenses/my", authMiddleware, (req, res) => {
-  try {
-    const rows = db
-      .prepare("SELECT * FROM licenses WHERE user_id = ? ORDER BY id DESC")
+@@ -389,50 +495,138 @@ app.get("/api/licenses/my", authMiddleware, (req, res) => {
       .all(req.user.id);
 
     const stmtCount = db.prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?");
