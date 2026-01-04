@@ -1,4 +1,4 @@
-// backend/server.js (WEBSITE BACKEND) - actualizado: max_devices + /api/me + user_sessions
+// backend/server.js (WEBSITE BACKEND) - actualizado: max_devices + /api/me + user_sessions + ADMIN API
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -188,7 +188,7 @@ const PLAN_LIMITS = {
     maxDevices: 1,
   },
 
-  // ✅ PRO corregido: 15 / 5000 / 2 devices
+  // ✅ PRO: 15 / 5000 / 2 devices
   pro: {
     maxAccounts: 15,
     maxWorkers: 15,
@@ -251,6 +251,7 @@ function createToken(userRow) {
 // ✅ user_sessions helpers (max_devices)
 // =========================
 const SESSION_TTL_MS = Number(process.env.SESSION_TTL_MS || 60 * 60 * 1000); // 1h
+
 function isoNow() {
   return new Date().toISOString();
 }
@@ -347,7 +348,7 @@ function authMiddleware(req, res, next) {
     }
 
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(401).json({ error: "Token inválido" });
   }
 }
@@ -473,7 +474,13 @@ app.post("/api/contact", (req, res) => {
         `INSERT INTO contact_messages (name, email, company, message, created_at)
          VALUES (?,?,?,?,?)`
       )
-      .run(String(name).trim(), String(email).trim().toLowerCase(), company || null, String(message).trim(), nowIso);
+      .run(
+        String(name).trim(),
+        String(email).trim().toLowerCase(),
+        company || null,
+        String(message).trim(),
+        nowIso
+      );
 
     return res.json({ ok: true, id: info.lastInsertRowid });
   } catch (err) {
@@ -610,7 +617,6 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
     const token = createToken(userRow);
-
     return res.json({ token, user: enriched });
   } catch (err) {
     console.error("Error en /api/auth/login", err);
@@ -821,20 +827,32 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
     const key = generateLicenseKey();
     const now = new Date();
 
+    const expDays = Number(expiresInDays);
     let expiresAt = null;
-    if (typeof expiresInDays === "number" && expiresInDays > 0 && planId !== "lifetime") {
-      expiresAt = new Date(now.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
+    if (Number.isFinite(expDays) && expDays > 0 && planId !== "lifetime") {
+      expiresAt = new Date(now.getTime() + expDays * 24 * 60 * 60 * 1000);
     }
 
+    const maxActParsed = Number(maxActivations);
     const maxAct =
-      maxActivations || PLAN_DEVICE_LIMIT[planId] || DEFAULT_MAX_ACTIVATIONS;
+      (Number.isFinite(maxActParsed) && maxActParsed > 0 ? Math.trunc(maxActParsed) : null) ||
+      PLAN_DEVICE_LIMIT[planId] ||
+      DEFAULT_MAX_ACTIVATIONS;
 
     const info = db
       .prepare(
         `INSERT INTO licenses (key, user_id, plan_id, status, max_activations, created_at, expires_at)
          VALUES (?,?,?,?,?,?,?)`
       )
-      .run(key, user.id, planId, "active", maxAct, now.toISOString(), expiresAt ? expiresAt.toISOString() : null);
+      .run(
+        key,
+        user.id,
+        planId,
+        "active",
+        maxAct,
+        now.toISOString(),
+        expiresAt ? expiresAt.toISOString() : null
+      );
 
     // opcional: actualizar plan del user (igual el "real" lo calcula por licencias)
     db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(planId, user.id);
@@ -959,6 +977,355 @@ app.post("/api/licenses/activate", authMiddleware, (req, res) => {
     });
   } catch (err) {
     console.error("Error en /api/licenses/activate", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// =====================================================================
+// ✅ ADMIN API (para Postman): licencias + vencimiento + activaciones + sesiones
+// =====================================================================
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function remainingDaysFromExpires(expiresAt) {
+  if (!expiresAt) return null; // lifetime/no expiry
+  const ms = Date.parse(expiresAt) - Date.now();
+  return Math.ceil(ms / DAY_MS);
+}
+
+function toInt(v, def = null) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.trunc(n) : def;
+}
+
+function addDaysIso(baseIsoOrNull, days) {
+  const d = toInt(days, null);
+  if (d == null) return null;
+  const base = baseIsoOrNull ? new Date(baseIsoOrNull) : new Date();
+  if (Number.isNaN(base.getTime())) return null;
+  return new Date(base.getTime() + d * DAY_MS).toISOString();
+}
+
+function getLicenseByKey(key) {
+  return db.prepare("SELECT * FROM licenses WHERE key = ?").get(key);
+}
+
+function getUserByEmail(emailNorm) {
+  return db.prepare("SELECT * FROM users WHERE email = ?").get(emailNorm);
+}
+
+function countLicenseActivations(licenseId) {
+  const row = db.prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?").get(licenseId);
+  return row?.n || 0;
+}
+
+function getLicenseActivations(licenseId) {
+  return db.prepare(
+    `SELECT install_id, device_name, app_version, first_activated_at, last_seen_at
+     FROM license_activations
+     WHERE license_id = ?
+     ORDER BY COALESCE(last_seen_at, first_activated_at) DESC`
+  ).all(licenseId);
+}
+
+function isValidPlanId(planId) {
+  const p = String(planId || "").toLowerCase();
+  return PLANS.some((x) => x.id === p);
+}
+
+// 1) Lookup user + licencias + sesiones activas
+// GET /api/admin/users/lookup?email=...
+app.get("/api/admin/users/lookup", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.query.email || "").trim().toLowerCase();
+    if (!email || !isValidEmail(email)) return res.status(400).json({ ok: false, error: "email inválido" });
+
+    const userRow = getUserByEmail(email);
+    if (!userRow) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    const effectivePlan = getEffectivePlanForUser(userRow.id);
+    const enriched = enrichUserForClient(userRow);
+
+    const licenses = db
+      .prepare("SELECT * FROM licenses WHERE user_id = ? ORDER BY created_at DESC")
+      .all(userRow.id)
+      .map((l) => ({
+        id: l.id,
+        key: l.key, // admin ve la key completa
+        plan_id: l.plan_id,
+        status: l.status,
+        created_at: l.created_at,
+        expires_at: l.expires_at,
+        remaining_days: remainingDaysFromExpires(l.expires_at),
+        max_activations: l.max_activations,
+        activations_used: countLicenseActivations(l.id),
+      }));
+
+    const sessions = listActiveSessions(userRow.id);
+
+    return res.json({
+      ok: true,
+      user: { ...enriched, created_at: userRow.created_at },
+      effective_plan: effectivePlan,
+      licenses,
+      active_sessions: sessions,
+      session_ttl_ms: SESSION_TTL_MS,
+    });
+  } catch (err) {
+    console.error("Error /api/admin/users/lookup", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 2) Admin: cambiar password usuario
+// POST /api/admin/users/set-password
+// body: { email, new_password }
+app.post("/api/admin/users/set-password", requireAdmin, async (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const newPass = String(req.body?.new_password || "").trim();
+
+    if (!email || !isValidEmail(email)) return res.status(400).json({ ok: false, error: "email inválido" });
+    if (!newPass || newPass.length < 6) return res.status(400).json({ ok: false, error: "new_password mínimo 6 chars" });
+
+    const user = getUserByEmail(email);
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    const hash = await bcrypt.hash(newPass, 10);
+    db.prepare("UPDATE users SET password_hash = ? WHERE id = ?").run(hash, user.id);
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("Error /api/admin/users/set-password", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 3) Admin: lookup licencia + activaciones
+// GET /api/admin/licenses/lookup?key=...
+app.get("/api/admin/licenses/lookup", requireAdmin, (req, res) => {
+  try {
+    const key = String(req.query.key || "").trim();
+    if (!key) return res.status(400).json({ ok: false, error: "key requerido" });
+
+    const lic = getLicenseByKey(key);
+    if (!lic) return res.status(404).json({ ok: false, error: "Licencia no encontrada" });
+
+    const activations = getLicenseActivations(lic.id);
+
+    return res.json({
+      ok: true,
+      license: {
+        id: lic.id,
+        key: lic.key,
+        user_id: lic.user_id,
+        plan_id: lic.plan_id,
+        status: lic.status,
+        created_at: lic.created_at,
+        expires_at: lic.expires_at,
+        remaining_days: remainingDaysFromExpires(lic.expires_at),
+        max_activations: lic.max_activations,
+        activations_used: activations.length,
+      },
+      activations,
+    });
+  } catch (err) {
+    console.error("Error /api/admin/licenses/lookup", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 4) Admin: update licencia (vencimiento/plan/status/max_activations)
+// POST /api/admin/licenses/update
+// body soporta:
+// { key, expires_at?, clear_expires?, set_expires_in_days?, extend_days?, plan_id?, status?, max_activations? }
+app.post("/api/admin/licenses/update", requireAdmin, (req, res) => {
+  try {
+    const key = String(req.body?.key || "").trim();
+    if (!key) return res.status(400).json({ ok: false, error: "key requerido" });
+
+    const lic = getLicenseByKey(key);
+    if (!lic) return res.status(404).json({ ok: false, error: "Licencia no encontrada" });
+
+    const patch = {};
+    const status = req.body?.status != null ? String(req.body.status).trim() : null;
+    const planId = req.body?.plan_id != null ? String(req.body.plan_id).trim().toLowerCase() : null;
+    const maxAct = req.body?.max_activations != null ? toInt(req.body.max_activations, null) : null;
+
+    const clearExpires = !!req.body?.clear_expires;
+    const expiresAt = req.body?.expires_at != null ? String(req.body.expires_at).trim() : null;
+    const setDays = req.body?.set_expires_in_days != null ? toInt(req.body.set_expires_in_days, null) : null;
+    const extendDays = req.body?.extend_days != null ? toInt(req.body.extend_days, null) : null;
+
+    if (status) patch.status = status;
+
+    if (planId) {
+      if (!isValidPlanId(planId)) return res.status(400).json({ ok: false, error: "plan_id inválido" });
+      patch.plan_id = planId;
+    }
+
+    if (maxAct != null) {
+      if (maxAct <= 0) return res.status(400).json({ ok: false, error: "max_activations debe ser > 0" });
+      patch.max_activations = maxAct;
+    }
+
+    // expires handling (prioridad: clear > expires_at > set_days > extend_days)
+    if (clearExpires) {
+      patch.expires_at = null;
+    } else if (expiresAt) {
+      const t = Date.parse(expiresAt);
+      if (Number.isNaN(t)) return res.status(400).json({ ok: false, error: "expires_at inválido (ISO)" });
+      patch.expires_at = new Date(t).toISOString();
+    } else if (setDays != null) {
+      if (setDays <= 0) return res.status(400).json({ ok: false, error: "set_expires_in_days debe ser > 0" });
+      patch.expires_at = addDaysIso(null, setDays);
+    } else if (extendDays != null) {
+      if (extendDays === 0) return res.status(400).json({ ok: false, error: "extend_days no puede ser 0" });
+      const base = lic.expires_at && Date.parse(lic.expires_at) > Date.now() ? lic.expires_at : null;
+      patch.expires_at = addDaysIso(base, extendDays);
+    }
+
+    const keys = Object.keys(patch);
+    if (keys.length === 0) return res.status(400).json({ ok: false, error: "Nada para actualizar" });
+
+    const setSql = keys.map((k) => `${k} = ?`).join(", ");
+    const values = keys.map((k) => patch[k]);
+
+    db.prepare(`UPDATE licenses SET ${setSql} WHERE id = ?`).run(...values, lic.id);
+
+    // opcional: si cambiás plan, actualizar users.plan también (el real lo calcula por licencias)
+    if (planId) {
+      try {
+        db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(planId, lic.user_id);
+      } catch (_) {}
+    }
+
+    const updated = getLicenseByKey(key);
+
+    return res.json({
+      ok: true,
+      license: {
+        id: updated.id,
+        key: updated.key,
+        user_id: updated.user_id,
+        plan_id: updated.plan_id,
+        status: updated.status,
+        created_at: updated.created_at,
+        expires_at: updated.expires_at,
+        remaining_days: remainingDaysFromExpires(updated.expires_at),
+        max_activations: updated.max_activations,
+        activations_used: countLicenseActivations(updated.id),
+      },
+    });
+  } catch (err) {
+    console.error("Error /api/admin/licenses/update", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 5) Admin: revocar activación puntual (liberar cupo)
+// POST /api/admin/licenses/revoke-activation
+// body: { key, install_id }
+app.post("/api/admin/licenses/revoke-activation", requireAdmin, (req, res) => {
+  try {
+    const key = String(req.body?.key || "").trim();
+    const iid = String(req.body?.install_id || "").trim();
+    if (!key || !iid) return res.status(400).json({ ok: false, error: "key e install_id son requeridos" });
+
+    const lic = getLicenseByKey(key);
+    if (!lic) return res.status(404).json({ ok: false, error: "Licencia no encontrada" });
+
+    const info = db.prepare(
+      "DELETE FROM license_activations WHERE license_id = ? AND install_id = ?"
+    ).run(lic.id, iid);
+
+    return res.json({ ok: true, deleted: info.changes });
+  } catch (err) {
+    console.error("Error /api/admin/licenses/revoke-activation", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 6) Admin: resetear todas las activaciones de una licencia
+// POST /api/admin/licenses/reset-activations
+// body: { key }
+app.post("/api/admin/licenses/reset-activations", requireAdmin, (req, res) => {
+  try {
+    const key = String(req.body?.key || "").trim();
+    if (!key) return res.status(400).json({ ok: false, error: "key requerido" });
+
+    const lic = getLicenseByKey(key);
+    if (!lic) return res.status(404).json({ ok: false, error: "Licencia no encontrada" });
+
+    const info = db.prepare("DELETE FROM license_activations WHERE license_id = ?").run(lic.id);
+    return res.json({ ok: true, deleted: info.changes });
+  } catch (err) {
+    console.error("Error /api/admin/licenses/reset-activations", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 7) Admin: sesiones activas por usuario (max_devices)
+// GET /api/admin/sessions/lookup?email=...
+app.get("/api/admin/sessions/lookup", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.query.email || "").trim().toLowerCase();
+    if (!email || !isValidEmail(email)) return res.status(400).json({ ok: false, error: "email inválido" });
+
+    const user = getUserByEmail(email);
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    const sessions = listActiveSessions(user.id);
+    return res.json({ ok: true, user_id: user.id, email: user.email, session_ttl_ms: SESSION_TTL_MS, sessions });
+  } catch (err) {
+    console.error("Error /api/admin/sessions/lookup", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 8) Admin: revocar una sesión puntual
+// POST /api/admin/sessions/revoke
+// body: { email, install_id }
+app.post("/api/admin/sessions/revoke", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const iid = String(req.body?.install_id || "").trim();
+    if (!email || !isValidEmail(email)) return res.status(400).json({ ok: false, error: "email inválido" });
+    if (!iid) return res.status(400).json({ ok: false, error: "install_id requerido" });
+
+    const user = getUserByEmail(email);
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    const now = isoNow();
+    const info = db.prepare(
+      `UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND install_id = ?`
+    ).run(now, user.id, iid);
+
+    return res.json({ ok: true, revoked: info.changes });
+  } catch (err) {
+    console.error("Error /api/admin/sessions/revoke", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// 9) Admin: revocar TODAS las sesiones activas de un usuario
+// POST /api/admin/sessions/reset
+// body: { email }
+app.post("/api/admin/sessions/reset", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email || !isValidEmail(email)) return res.status(400).json({ ok: false, error: "email inválido" });
+
+    const user = getUserByEmail(email);
+    if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    const now = isoNow();
+    const info = db.prepare(
+      `UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`
+    ).run(now, user.id);
+
+    return res.json({ ok: true, revoked: info.changes });
+  } catch (err) {
+    console.error("Error /api/admin/sessions/reset", err);
     return res.status(500).json({ ok: false, error: "Error interno" });
   }
 });
