@@ -65,6 +65,8 @@ const GA4_ID = String(readMeta("hyperion-ga4-id") || "").trim();
 
 const THEME_KEY = "hyperion_theme";
 const COOKIE_KEY = "hyperion_cookie_consent";
+const CHAT_STORAGE_KEY = "hyperion_chat_history";
+const CHAT_STATE_KEY = "hyperion_chat_open";
 
 // ------------------------------------------------------------
 // Utils DOM
@@ -128,6 +130,13 @@ function toDateShort(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Sin fecha";
   return d.toLocaleDateString();
+}
+
+function toChatTime(date = new Date()) {
+  return date.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function setBusy(form, isBusy) {
@@ -1062,22 +1071,79 @@ function initChatWidget() {
   const quick1 = document.getElementById("chat-quick-1");
   const quick2 = document.getElementById("chat-quick-2");
   const quick3 = document.getElementById("chat-quick-3");
+  const minimize = document.getElementById("chat-minimize");
+  const submitBtn = form?.querySelector('button[type="submit"]');
+  const controls = [submitBtn, quick1, quick2, quick3].filter(Boolean);
+  const history = [];
+  const maxMessages = 24;
+  let lastIntent = "general";
 
-  const addMessage = (text, variant = "bot") => {
+  const setControlsDisabled = (isDisabled) => {
+    controls.forEach((control) => {
+      control.disabled = !!isDisabled;
+    });
+  };
+
+  const sanitizeInput = (value) => String(value || "").replace(/\s+/g, " ").trim();
+
+  const persistHistory = () => {
+    if (!history.length) return;
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history.slice(-maxMessages)));
+    } catch (err) {
+      console.warn("[chat] persist error", err);
+    }
+  };
+
+  const loadHistory = () => {
+    try {
+      const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter((item) => item && typeof item.text === "string")
+        .slice(-maxMessages);
+    } catch (err) {
+      console.warn("[chat] load error", err);
+      return [];
+    }
+  };
+
+  const renderMessage = (entry) => {
     if (!messages) return;
     const item = document.createElement("div");
-    item.className = `chat-message chat-message--${variant}`;
-    item.textContent = text;
+    item.className = `chat-message chat-message--${entry.variant || "bot"}`;
+    const body = document.createElement("p");
+    body.textContent = entry.text;
+    const time = document.createElement("span");
+    time.className = "chat-message-time";
+    time.textContent = entry.time || toChatTime();
+    item.append(body, time);
     messages.appendChild(item);
+  };
+
+  const addMessage = (text, variant = "bot", meta = {}) => {
+    if (!messages) return;
+    const entry = {
+      text,
+      variant,
+      time: meta.time || toChatTime(),
+    };
+    history.push(entry);
+    renderMessage(entry);
     messages.scrollTop = messages.scrollHeight;
+    persistHistory();
   };
 
   const setTyping = (isVisible) => {
     if (!typing) return;
     typing.hidden = !isVisible;
+    setControlsDisabled(isVisible);
   };
 
-  const respondWith = (text, delay = 650) => {
+  const respondWith = (text) => {
+    const delay = Math.min(1400, 420 + text.length * 12);
     setTyping(true);
     window.setTimeout(() => {
       setTyping(false);
@@ -1093,47 +1159,96 @@ function initChatWidget() {
 
   const getReply = (value) => {
     const text = String(value || "").toLowerCase();
+    if (/hola|buenas|hey|que tal/.test(text)) {
+      lastIntent = "greeting";
+      return "¡Hola! Estoy para ayudarte con planes, licencias, soporte o demos. ¿Qué estás buscando?";
+    }
+    if (/gracias|genial|perfecto/.test(text)) {
+      lastIntent = "thanks";
+      return "¡De nada! Si querés, también puedo sugerirte un plan según cuentas y volumen.";
+    }
     if (/plan|precio|costo|valor|tarifa/.test(text)) {
+      lastIntent = "pricing";
       return "Planes: Starter $0, Pro $79, Agency $299 y Lifetime $699. ¿Querés que te recomiende según cuentas y volumen?";
     }
     if (/demo|consulta|reunión|agenda|agendar/.test(text)) {
+      lastIntent = "demo";
       return "Podemos coordinar una demo corta y dejarte un plan de implementación. ¿Qué tipo de equipo tenés?";
     }
     if (/soporte|ayuda|error|problema|ticket/.test(text)) {
+      lastIntent = "support";
       return "Para soporte, podés abrir un ticket desde el dashboard o escribir a soporte@hyperion.com. ¿Qué pasó exactamente?";
     }
     if (/licencia|activar|activación|instalar|instalación/.test(text)) {
+      lastIntent = "licensing";
       return "La licencia se genera al crear tu cuenta y se activa dentro de Hyperion Client. ¿Querés la guía rápida?";
     }
     if (/windows|mac|linux|descarga/.test(text)) {
+      lastIntent = "download";
       return "La versión principal es Windows. macOS y Linux están en roadmap. ¿Querés el link de descarga?";
+    }
+    if (/api|integraci|webhook|zapier/.test(text)) {
+      lastIntent = "integrations";
+      return "Podemos integrar vía API y webhooks para automatizar flujos. ¿Qué herramienta usás hoy?";
+    }
+    if (/humano|agente|asesor|persona/.test(text)) {
+      lastIntent = "handoff";
+      return "Te paso con alguien del equipo. Podés escribirnos a soporte@hyperion.com o dejar tu mail y teléfono.";
+    }
+    if (lastIntent === "pricing" && /\d+/.test(text)) {
+      return "Con ese volumen, el plan Pro suele rendir bien. ¿Querés que calcule el costo estimado?";
     }
     return "Entiendo. Contame un poco más: ¿cuántas cuentas manejás y qué objetivo buscás?";
   };
 
-  if (messages && messages.childElementCount === 0) {
+  const openPanel = () => {
+    if (!panel) return;
+    panel.removeAttribute("hidden");
+    window.requestAnimationFrame(() => widget.classList.add("is-open"));
+    toggle?.setAttribute("aria-expanded", "true");
+    input?.focus();
+    localStorage.setItem(CHAT_STATE_KEY, "true");
+  };
+
+  const closePanel = () => {
+    if (!panel) return;
+    widget.classList.remove("is-open");
+    window.setTimeout(() => {
+      if (!widget.classList.contains("is-open")) {
+        panel.setAttribute("hidden", "true");
+      }
+    }, 200);
+    toggle?.setAttribute("aria-expanded", "false");
+    localStorage.setItem(CHAT_STATE_KEY, "false");
+  };
+
+  const stored = loadHistory();
+  stored.forEach((entry) => {
+    history.push(entry);
+    renderMessage(entry);
+  });
+
+  if (!stored.length) {
     addMessage(
       "Hola 👋 Soy Hyperion Assistant. Puedo ayudarte con planes, licencias, soporte o demos. ¿Qué necesitás?",
       "bot"
     );
+  } else if (messages) {
+    messages.scrollTop = messages.scrollHeight;
   }
 
   on(toggle, "click", () => {
     const isOpen = panel && !panel.hasAttribute("hidden");
     if (!panel) return;
     if (isOpen) {
-      widget.classList.remove("is-open");
-      window.setTimeout(() => {
-        if (!widget.classList.contains("is-open")) {
-          panel.setAttribute("hidden", "true");
-        }
-      }, 200);
-      toggle.setAttribute("aria-expanded", "false");
+      closePanel();
     } else {
-      panel.removeAttribute("hidden");
-      window.requestAnimationFrame(() => widget.classList.add("is-open"));
-      toggle.setAttribute("aria-expanded", "true");
+      openPanel();
     }
+  });
+
+  on(minimize, "click", () => {
+    closePanel();
   });
 
   on(quick1, "click", () => {
@@ -1153,11 +1268,15 @@ function initChatWidget() {
 
   on(form, "submit", (event) => {
     event.preventDefault();
-    const value = String(input?.value || "").trim();
+    const value = sanitizeInput(input?.value);
     if (!value) return;
     sendMessage(value, getReply(value));
     if (input) input.value = "";
   });
+
+  if (localStorage.getItem(CHAT_STATE_KEY) === "true") {
+    openPanel();
+  }
 }
 
 // ------------------------------------------------------------
