@@ -15,10 +15,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ⚠️ En producción: SI O SI setearlos como env vars (no hardcode)
-const JWT_SECRET =
-  process.env.JWT_SECRET || "CHANGE_ME_IN_PROD_JWT_SECRET";
-const ADMIN_API_KEY =
-  process.env.ADMIN_API_KEY || "CHANGE_ME_IN_PROD_ADMIN_KEY";
+
+const JWT_SECRET = process.env.JWT_SECRET || "guk26ljOkyzbusaV7uK0ilw4s1b0AO3762AHxDiOrQw=";
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998";
 
 // DB schema (se crea al boot)
 db.exec(`
