@@ -566,12 +566,22 @@
 
   <div id="chat-widget" class="chat-widget" aria-live="polite">
     <button id="chat-toggle" class="chat-toggle" type="button" aria-expanded="false">
-      💬 Chat en vivo
+      <span class="chat-toggle-icon" aria-hidden="true">💬</span>
+      <span class="chat-toggle-text">Chat en vivo</span>
+      <span class="chat-toggle-status">En línea</span>
     </button>
     <div class="chat-panel" hidden>
       <div class="chat-header">
-        <strong>Hyperion Assistant</strong>
-        <span class="muted small"><span class="chat-status-dot" aria-hidden="true"></span> Bot + equipo</span>
+        <div class="chat-title">
+          <span class="chat-avatar" aria-hidden="true">HA</span>
+          <div>
+            <strong>Hyperion Assistant</strong>
+            <span class="muted small"><span class="chat-status-dot" aria-hidden="true"></span> En línea · Responde en minutos</span>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button id="chat-minimize" class="icon-button" type="button" aria-label="Minimizar chat">—</button>
+        </div>
       </div>
       <div id="chat-messages" class="chat-messages"></div>
       <div id="chat-typing" class="chat-typing" role="status" aria-live="polite" hidden>
@@ -580,12 +590,9 @@
         <span class="typing-dot"></span>
         <span class="muted small">Hyperion está escribiendo…</span>
       </div>
-      <form id="chat-form" class="chat-form">
-        <label class="sr-only" for="chat-input">Escribí tu mensaje</label>
-        <input id="chat-input" name="chat-input" type="text" placeholder="Escribí tu mensaje" autocomplete="off" />
-        <button type="submit" class="btn btn-primary">Enviar</button>
-      </form>
+      <div id="chat-suggestions" class="chat-suggestions" aria-live="polite"></div>
       <div class="chat-actions">
+        <p class="muted small chat-actions-title">Atajos rápidos</p>
         <button id="chat-quick-1" type="button" class="btn btn-ghost btn-block">Ver planes</button>
         <button id="chat-quick-2" type="button" class="btn btn-ghost btn-block">Agendar demo</button>
         <button id="chat-quick-3" type="button" class="btn btn-ghost btn-block">Soporte</button>
