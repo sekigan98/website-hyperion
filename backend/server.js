@@ -15,8 +15,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ⚠️ En producción: SI O SI setearlos como env vars (no hardcode)
-const JWT_SECRET = process.env.JWT_SECRET || "guk26ljOkyzbusaV7uK0ilw4s1b0AO3762AHxDiOrQw=";
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998";
+const JWT_SECRET =
+  process.env.JWT_SECRET || "CHANGE_ME_IN_PROD_JWT_SECRET";
+const ADMIN_API_KEY =
+  process.env.ADMIN_API_KEY || "CHANGE_ME_IN_PROD_ADMIN_KEY";
 
 // DB schema (se crea al boot)
 db.exec(`
@@ -35,7 +37,7 @@ CREATE TABLE IF NOT EXISTS licenses (
   key TEXT NOT NULL UNIQUE,
   user_id INTEGER NOT NULL,
   plan_id TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'active',
+  status TEXT NOT NULL DEFAULT 'active', -- active | revoked | suspended | expired
   max_activations INTEGER NOT NULL DEFAULT 1,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   expires_at TEXT,
@@ -52,6 +54,17 @@ CREATE TABLE IF NOT EXISTS license_activations (
   app_version TEXT,
   UNIQUE(license_id, install_id),
   FOREIGN KEY(license_id) REFERENCES licenses(id)
+);
+
+-- ✅ NUEVO: denylist por dispositivo (revocar un PC)
+CREATE TABLE IF NOT EXISTS revoked_installs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  install_id TEXT NOT NULL,
+  reason TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, install_id),
+  FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS contact_messages (
@@ -171,12 +184,12 @@ const PLAN_LIMITS = {
 const PLAN_DEVICE_LIMIT = { starter: 1, pro: 2, lifetime: 5, agency: 3 };
 const DEFAULT_MAX_ACTIVATIONS = 1;
 
-// =========================
-// CORS (configurable)
 function getPlanLimits(planId) {
   return PLAN_LIMITS[planId] || PLAN_LIMITS.starter;
 }
 
+// =========================
+// CORS (configurable)
 const CORS_ALLOW_ORIGINS = String(process.env.CORS_ALLOW_ORIGINS || "");
 const CORS_ALLOW_LIST = CORS_ALLOW_ORIGINS.split(",")
   .map((origin) => origin.trim())
@@ -207,7 +220,7 @@ function authMiddleware(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(401).json({ error: "Token inválido" });
   }
 }
@@ -218,6 +231,7 @@ function requireAdmin(req, res, next) {
     req.headers["x-admin-key"] ||
     req.query.admin_key ||
     req.query.api_key;
+
   if (!key || key !== ADMIN_API_KEY) return res.status(403).json({ error: "No autorizado" });
   return next();
 }
@@ -241,32 +255,11 @@ function cmpSemver(a, b) {
   return 0;
 }
 
-function enrichUserForClient(userRow) {
-  const planId = getEffectivePlanForUser(userRow.id); // ✅ plan real por licencias
-  const limits = getPlanLimits(planId);
-  return {
-    id: userRow.id,
-    email: userRow.email,
-    plan: planId,
-    max_accounts: limits.maxAccounts,
-    messages_per_day: limits.maxMessagesPerDay,
-    warmup_enabled: !!limits.warmupEnabled,
-    max_workers: limits.maxWorkers,
-    max_devices: limits.maxDevices,
-  };
-}
-
 function isLicenseActiveNow(l) {
   if (!l) return false;
   if (l.status !== "active") return false;
   if (!l.expires_at) return true;
   return Date.parse(l.expires_at) > Date.now();
-}
-
-function isValidEmail(email) {
-  const value = String(email || "").trim().toLowerCase();
-  if (!value) return false;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 // prioridad (ajustala a tu gusto)
@@ -290,9 +283,40 @@ function getEffectivePlanForUser(userId) {
   return pickBestPlan(active);
 }
 
+function enrichUserForClient(userRow) {
+  const planId = getEffectivePlanForUser(userRow.id); // ✅ plan real por licencias activas
+  const limits = getPlanLimits(planId);
+  return {
+    id: userRow.id,
+    email: userRow.email,
+    plan: planId,
+    max_accounts: limits.maxAccounts,
+    messages_per_day: limits.maxMessagesPerDay,
+    warmup_enabled: !!limits.warmupEnabled,
+    max_workers: limits.maxWorkers,
+    max_devices: limits.maxDevices,
+  };
+}
+
+function isValidEmail(email) {
+  const value = String(email || "").trim().toLowerCase();
+  if (!value) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isInstallRevoked(userId, installId) {
+  try {
+    const row = db
+      .prepare("SELECT id FROM revoked_installs WHERE user_id = ? AND install_id = ? LIMIT 1")
+      .get(userId, String(installId || "").trim());
+    return !!row;
+  } catch (_) {
+    return false;
+  }
+}
+
 // =========================
 // Update policy: /api/app/version
-// (lo usa Electron main.js)
 // =========================
 app.get("/api/app/version", (req, res) => {
   const current = String(req.query.current || req.query.version || req.headers["x-app-version"] || "0.0.0");
@@ -301,8 +325,6 @@ app.get("/api/app/version", (req, res) => {
   const downloadUrl = String(process.env.HYPERION_DOWNLOAD_URL || "");
   const notes = String(process.env.HYPERION_RELEASE_NOTES || "");
 
-  // Siempre respondemos ok:true, Electron decide si bloquea comparando current vs min_version
-  // (igual dejamos la info por si querés debug)
   res.json({
     ok: true,
     current,
@@ -310,7 +332,6 @@ app.get("/api/app/version", (req, res) => {
     latest,
     download_url: downloadUrl,
     notes,
-    // hint:
     update_required: cmpSemver(current, minVersion) < 0,
   });
 });
@@ -320,6 +341,20 @@ app.get("/api/app/version", (req, res) => {
 // =========================
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 app.get("/api/plans", (_req, res) => res.json({ plans: PLANS }));
+
+// ✅ NUEVO: /api/me (para refrescar plan real desde la app / postman)
+app.get("/api/me", authMiddleware, (req, res) => {
+  try {
+    const userRow = db.prepare("SELECT id, email, plan FROM users WHERE id = ?").get(req.user.id);
+    if (!userRow) return res.status(404).json({ ok: false, error: "USER_NOT_FOUND" });
+
+    const user = enrichUserForClient(userRow);
+    return res.json({ ok: true, user });
+  } catch (err) {
+    console.error("Error en /api/me", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
 
 app.post("/api/contact", (req, res) => {
   try {
@@ -405,7 +440,6 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body || {};
@@ -467,6 +501,8 @@ app.post("/api/auth/change-password", authMiddleware, async (req, res) => {
   }
 });
 
+// =========================
+// Licencias: user (mis licencias)
 app.get("/api/licenses/my", authMiddleware, (req, res) => {
   try {
     const rows = db
@@ -619,7 +655,7 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
       )
       .run(key, user.id, planId, "active", maxAct, now.toISOString(), expiresAt ? expiresAt.toISOString() : null);
 
-    // opcional: actualizar plan del user
+    // opcional: actualizar plan del user (display)
     db.prepare("UPDATE users SET plan = ? WHERE id = ?").run(planId, user.id);
 
     const lic = db.prepare("SELECT * FROM licenses WHERE id = ?").get(info.lastInsertRowid);
@@ -648,7 +684,6 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
 // =========================
 app.post("/api/licenses/activate", authMiddleware, (req, res) => {
   try {
-    // Aceptar ambos formatos (compat)
     const rawKey = req.body?.license_key || req.body?.key || "";
     const installId = req.body?.install_id || req.body?.installId || "";
     const deviceName = req.body?.device_name || req.body?.deviceName || null;
@@ -659,6 +694,11 @@ app.post("/api/licenses/activate", authMiddleware, (req, res) => {
 
     if (!key || !iid) {
       return res.status(400).json({ ok: false, error: "license_key/key e install_id/installId son requeridos" });
+    }
+
+    // ✅ denylist por dispositivo
+    if (isInstallRevoked(req.user.id, iid)) {
+      return res.status(403).json({ ok: false, error: "INSTALL_REVOKED" });
     }
 
     const license = db.prepare("SELECT * FROM licenses WHERE key = ?").get(key);
@@ -679,7 +719,6 @@ app.post("/api/licenses/activate", authMiddleware, (req, res) => {
 
     const nowIso = new Date().toISOString();
 
-    // Buscar activación previa
     const activation = db
       .prepare("SELECT * FROM license_activations WHERE license_id = ? AND install_id = ?")
       .get(license.id, iid);
@@ -717,11 +756,9 @@ app.post("/api/licenses/activate", authMiddleware, (req, res) => {
       .prepare("SELECT COUNT(*) AS n FROM license_activations WHERE license_id = ?")
       .get(license.id);
 
-    // User fresh desde DB (por si cambió plan)
     const userRow = db.prepare("SELECT id, email, plan FROM users WHERE id = ?").get(req.user.id);
     const enrichedUser = enrichUserForClient(userRow);
 
-    // Token rotado (opcional pero le sirve a tu Electron para persistir)
     const newToken = createToken(userRow);
 
     return res.json({
@@ -736,7 +773,6 @@ app.post("/api/licenses/activate", authMiddleware, (req, res) => {
         max_activations: license.max_activations,
         activations_used: countRow.n || 0,
         key_masked: `${license.key.slice(0, 4)}-****-****`,
-        // límites en camelCase (y tu Electron ya mergea)
         limits: {
           maxAccounts: limits.maxAccounts,
           maxWorkers: limits.maxWorkers,
@@ -748,6 +784,161 @@ app.post("/api/licenses/activate", authMiddleware, (req, res) => {
     });
   } catch (err) {
     console.error("Error en /api/licenses/activate", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// =========================
+// ✅ ADMIN: revocar / desbloquear (para Postman)
+// =========================
+
+// Debug admin: ver user + licencias + activaciones
+app.get("/api/admin/users/:email", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.params.email || "").trim().toLowerCase();
+    const user = db.prepare("SELECT id, email, plan, created_at FROM users WHERE email = ?").get(email);
+    if (!user) return res.status(404).json({ ok: false, error: "USER_NOT_FOUND" });
+
+    const licenses = db.prepare("SELECT * FROM licenses WHERE user_id = ? ORDER BY created_at DESC").all(user.id);
+    const actsStmt = db.prepare("SELECT * FROM license_activations WHERE license_id = ? ORDER BY last_seen_at DESC");
+
+    const revoked = db.prepare("SELECT install_id, reason, created_at FROM revoked_installs WHERE user_id = ?").all(user.id);
+
+    return res.json({
+      ok: true,
+      user,
+      effectivePlan: getEffectivePlanForUser(user.id),
+      revoked_installs: revoked,
+      licenses: licenses.map((l) => ({
+        ...l,
+        key_masked: `${String(l.key).slice(0, 4)}-****-****`,
+        activations: actsStmt.all(l.id),
+      })),
+    });
+  } catch (err) {
+    console.error("Error en /api/admin/users/:email", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// Revocar una licencia específica (por key)
+app.post("/api/admin/licenses/revoke", requireAdmin, (req, res) => {
+  try {
+    const key = String(req.body?.key || "").trim();
+    const reason = String(req.body?.reason || "").slice(0, 200) || null;
+    if (!key) return res.status(400).json({ ok: false, error: "key requerida" });
+
+    const lic = db.prepare("SELECT * FROM licenses WHERE key = ?").get(key);
+    if (!lic) return res.status(404).json({ ok: false, error: "LICENSE_NOT_FOUND" });
+
+    db.prepare("UPDATE licenses SET status = 'revoked' WHERE id = ?").run(lic.id);
+
+    // opcional: limpiar activaciones para que no sigan “ocupando”
+    db.prepare("DELETE FROM license_activations WHERE license_id = ?").run(lic.id);
+
+    return res.json({ ok: true, revoked: true, key_masked: `${key.slice(0, 4)}-****-****`, reason });
+  } catch (err) {
+    console.error("Error en /api/admin/licenses/revoke", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// Des-revocar una licencia (volver a active)
+app.post("/api/admin/licenses/unrevoke", requireAdmin, (req, res) => {
+  try {
+    const key = String(req.body?.key || "").trim();
+    if (!key) return res.status(400).json({ ok: false, error: "key requerida" });
+
+    const lic = db.prepare("SELECT * FROM licenses WHERE key = ?").get(key);
+    if (!lic) return res.status(404).json({ ok: false, error: "LICENSE_NOT_FOUND" });
+
+    db.prepare("UPDATE licenses SET status = 'active' WHERE id = ?").run(lic.id);
+
+    return res.json({ ok: true, active: true, key_masked: `${key.slice(0, 4)}-****-****` });
+  } catch (err) {
+    console.error("Error en /api/admin/licenses/unrevoke", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// Revocar TODAS las licencias de un usuario (por email)
+app.post("/api/admin/users/revoke", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    if (!email) return res.status(400).json({ ok: false, error: "email requerido" });
+
+    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    if (!user) return res.status(404).json({ ok: false, error: "USER_NOT_FOUND" });
+
+    db.prepare("UPDATE licenses SET status = 'revoked' WHERE user_id = ?").run(user.id);
+
+    // opcional: limpiar TODAS las activaciones del user (libera cupos)
+    db.prepare(`
+      DELETE FROM license_activations
+      WHERE license_id IN (SELECT id FROM licenses WHERE user_id = ?)
+    `).run(user.id);
+
+    return res.json({ ok: true, userRevoked: true, email });
+  } catch (err) {
+    console.error("Error en /api/admin/users/revoke", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// Revocar un dispositivo (bloquear install_id) para un user
+app.post("/api/admin/devices/revoke", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const installId = String(req.body?.installId || req.body?.install_id || "").trim();
+    const reason = String(req.body?.reason || "manual").slice(0, 200);
+
+    if (!email || !installId) {
+      return res.status(400).json({ ok: false, error: "email + installId requeridos" });
+    }
+
+    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    if (!user) return res.status(404).json({ ok: false, error: "USER_NOT_FOUND" });
+
+    // upsert denylist
+    db.prepare(`
+      INSERT INTO revoked_installs(user_id, install_id, reason, created_at)
+      VALUES (?,?,?,?)
+      ON CONFLICT(user_id, install_id) DO UPDATE SET
+        reason = excluded.reason,
+        created_at = excluded.created_at
+    `).run(user.id, installId, reason, new Date().toISOString());
+
+    // opcional: borrar activaciones existentes en ese device para liberar cupo
+    db.prepare(`
+      DELETE FROM license_activations
+      WHERE install_id = ?
+        AND license_id IN (SELECT id FROM licenses WHERE user_id = ?)
+    `).run(installId, user.id);
+
+    return res.json({ ok: true, installRevoked: true, email, installId, reason });
+  } catch (err) {
+    console.error("Error en /api/admin/devices/revoke", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
+// Desbloquear dispositivo
+app.post("/api/admin/devices/unrevoke", requireAdmin, (req, res) => {
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+    const installId = String(req.body?.installId || req.body?.install_id || "").trim();
+    if (!email || !installId) {
+      return res.status(400).json({ ok: false, error: "email + installId requeridos" });
+    }
+
+    const user = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    if (!user) return res.status(404).json({ ok: false, error: "USER_NOT_FOUND" });
+
+    db.prepare("DELETE FROM revoked_installs WHERE user_id = ? AND install_id = ?").run(user.id, installId);
+
+    return res.json({ ok: true, installUnrevoked: true, email, installId });
+  } catch (err) {
+    console.error("Error en /api/admin/devices/unrevoke", err);
     return res.status(500).json({ ok: false, error: "Error interno" });
   }
 });
