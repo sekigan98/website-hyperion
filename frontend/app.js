@@ -1203,7 +1203,17 @@ function initChatWidget() {
   });
 
   on(quick1, "click", () => {
-    sendMessage("Ver planes", "Te comparto los planes y beneficios clave. ¿Querés que te recomiende el ideal?");
+    const planSummary = [
+      "Planes disponibles:",
+      "• Starter: U$D 0/mes — 1 cuenta, campañas básicas, 1 dispositivo.",
+      "• Pro: U$D 79/mes — hasta 5 cuentas, warmup inteligente, soporte prioritario.",
+      "• Agency: U$D 299/mes — 10+ cuentas, onboarding dedicado.",
+      "• Lifetime: U$D 699 pago único — hasta 10 cuentas, sin renovaciones.",
+      "",
+      "¿Querés que te recomiende el ideal según tu volumen?",
+    ].join("\n");
+
+    sendMessage("Ver planes", planSummary);
   });
 
   on(quick2, "click", () => {
