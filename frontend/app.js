@@ -1066,25 +1066,20 @@ function initChatWidget() {
   const panel = widget.querySelector(".chat-panel");
   const messages = document.getElementById("chat-messages");
   const typing = document.getElementById("chat-typing");
-  const form = document.getElementById("chat-form");
-  const input = document.getElementById("chat-input");
   const quick1 = document.getElementById("chat-quick-1");
   const quick2 = document.getElementById("chat-quick-2");
   const quick3 = document.getElementById("chat-quick-3");
   const minimize = document.getElementById("chat-minimize");
-  const submitBtn = form?.querySelector('button[type="submit"]');
-  const controls = [submitBtn, quick1, quick2, quick3].filter(Boolean);
+  const controls = [quick1, quick2, quick3].filter(Boolean);
   const history = [];
   const maxMessages = 24;
-  let lastIntent = "general";
+  const primaryAction = quick1 || quick2 || quick3;
 
   const setControlsDisabled = (isDisabled) => {
     controls.forEach((control) => {
       control.disabled = !!isDisabled;
     });
   };
-
-  const sanitizeInput = (value) => String(value || "").replace(/\s+/g, " ").trim();
 
   const persistHistory = () => {
     if (!history.length) return;
@@ -1157,56 +1152,12 @@ function initChatWidget() {
     respondWith(replyText);
   };
 
-  const getReply = (value) => {
-    const text = String(value || "").toLowerCase();
-    if (/hola|buenas|hey|que tal/.test(text)) {
-      lastIntent = "greeting";
-      return "¡Hola! Estoy para ayudarte con planes, licencias, soporte o demos. ¿Qué estás buscando?";
-    }
-    if (/gracias|genial|perfecto/.test(text)) {
-      lastIntent = "thanks";
-      return "¡De nada! Si querés, también puedo sugerirte un plan según cuentas y volumen.";
-    }
-    if (/plan|precio|costo|valor|tarifa/.test(text)) {
-      lastIntent = "pricing";
-      return "Planes: Starter $0, Pro $79, Agency $299 y Lifetime $699. ¿Querés que te recomiende según cuentas y volumen?";
-    }
-    if (/demo|consulta|reunión|agenda|agendar/.test(text)) {
-      lastIntent = "demo";
-      return "Podemos coordinar una demo corta y dejarte un plan de implementación. ¿Qué tipo de equipo tenés?";
-    }
-    if (/soporte|ayuda|error|problema|ticket/.test(text)) {
-      lastIntent = "support";
-      return "Para soporte, podés abrir un ticket desde el dashboard o escribir a soporte@hyperion.com. ¿Qué pasó exactamente?";
-    }
-    if (/licencia|activar|activación|instalar|instalación/.test(text)) {
-      lastIntent = "licensing";
-      return "La licencia se genera al crear tu cuenta y se activa dentro de Hyperion Client. ¿Querés la guía rápida?";
-    }
-    if (/windows|mac|linux|descarga/.test(text)) {
-      lastIntent = "download";
-      return "La versión principal es Windows. macOS y Linux están en roadmap. ¿Querés el link de descarga?";
-    }
-    if (/api|integraci|webhook|zapier/.test(text)) {
-      lastIntent = "integrations";
-      return "Podemos integrar vía API y webhooks para automatizar flujos. ¿Qué herramienta usás hoy?";
-    }
-    if (/humano|agente|asesor|persona/.test(text)) {
-      lastIntent = "handoff";
-      return "Te paso con alguien del equipo. Podés escribirnos a soporte@hyperion.com o dejar tu mail y teléfono.";
-    }
-    if (lastIntent === "pricing" && /\d+/.test(text)) {
-      return "Con ese volumen, el plan Pro suele rendir bien. ¿Querés que calcule el costo estimado?";
-    }
-    return "Entiendo. Contame un poco más: ¿cuántas cuentas manejás y qué objetivo buscás?";
-  };
-
   const openPanel = () => {
     if (!panel) return;
     panel.removeAttribute("hidden");
     window.requestAnimationFrame(() => widget.classList.add("is-open"));
     toggle?.setAttribute("aria-expanded", "true");
-    input?.focus();
+    primaryAction?.focus();
     localStorage.setItem(CHAT_STATE_KEY, "true");
   };
 
@@ -1264,14 +1215,6 @@ function initChatWidget() {
       "Soporte",
       "Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com."
     );
-  });
-
-  on(form, "submit", (event) => {
-    event.preventDefault();
-    const value = sanitizeInput(input?.value);
-    if (!value) return;
-    sendMessage(value, getReply(value));
-    if (input) input.value = "";
   });
 
   if (localStorage.getItem(CHAT_STATE_KEY) === "true") {
