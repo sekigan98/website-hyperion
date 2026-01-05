@@ -1,4 +1,4 @@
-// backend/server.js (WEBSITE BACKEND) - actualizado: max_devices + /api/me + user_sessions + ADMIN API
+// backend/server.js (WEBSITE BACKEND) - max_devices + /api/me + user_sessions + ADMIN API
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -187,8 +187,6 @@ const PLAN_LIMITS = {
     warmupEnabled: false,
     maxDevices: 1,
   },
-
-  // ✅ PRO: 15 / 5000 / 2 devices
   pro: {
     maxAccounts: 15,
     maxWorkers: 15,
@@ -196,8 +194,6 @@ const PLAN_LIMITS = {
     warmupEnabled: true,
     maxDevices: 2,
   },
-
-  // ✅ Lifetime: mensajes ilimitados (-1)
   lifetime: {
     maxAccounts: 20,
     maxWorkers: 20,
@@ -205,7 +201,6 @@ const PLAN_LIMITS = {
     warmupEnabled: true,
     maxDevices: 5,
   },
-
   agency: {
     maxAccounts: 14,
     maxWorkers: 14,
@@ -328,8 +323,8 @@ function isSessionAllowed(userId, installId) {
 }
 
 // =========================
-// Auth middleware (✅ corta si sesión revocada)
-// Electron manda X-Install-Id siempre.
+// Auth middleware
+// ✅ FIX: si NO viene X-Install-Id => es WEB => NO validar sesiones
 // =========================
 function authMiddleware(req, res, next) {
   const header = String(req.headers.authorization || "");
@@ -435,7 +430,9 @@ function enrichUserForClient(userRow) {
 // Update policy: /api/app/version
 // =========================
 app.get("/api/app/version", (req, res) => {
-  const current = String(req.query.current || req.query.version || req.headers["x-app-version"] || "0.0.0");
+  const current = String(
+    req.query.current || req.query.version || req.headers["x-app-version"] || "0.0.0"
+  );
   const minVersion = String(process.env.HYPERION_MIN_VERSION || "0.0.0");
   const latest = String(process.env.HYPERION_LATEST_VERSION || minVersion);
   const downloadUrl = String(process.env.HYPERION_DOWNLOAD_URL || "");
@@ -501,7 +498,12 @@ app.post("/api/newsletter", (req, res) => {
        VALUES (?,?,?,?)`
     );
     try {
-      stmt.run(String(email).trim().toLowerCase(), source || "site", "active", new Date().toISOString());
+      stmt.run(
+        String(email).trim().toLowerCase(),
+        source || "site",
+        "active",
+        new Date().toISOString()
+      );
     } catch (err) {
       if (String(err?.message || "").includes("UNIQUE")) {
         return res.json({ ok: true, status: "already_subscribed" });
@@ -549,7 +551,9 @@ app.post("/api/auth/register", async (req, res) => {
 });
 
 // ✅ Login con max_devices + force
-// Body: { email, password, install_id, device_name, app_version, force }
+// ✅ FIX: WEB login permitido sin install_id (no crea user_session)
+// Body Electron: { email, password, install_id, device_name, app_version, force }
+// Body Web:     { email, password }
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password, install_id, device_name, app_version, force } = req.body || {};
@@ -566,22 +570,28 @@ app.post("/api/auth/login", async (req, res) => {
 
     const enriched = enrichUserForClient(userRow);
 
-    // ✅ enforce max_devices
+    const token = createToken(userRow);
+
+    // ✅ FIX: si NO hay install_id => es login web, devolvemos token y user y listo
+    const iid = String(install_id || "").trim();
+    if (!iid) {
+      return res.json({
+        token,
+        user: enriched,
+        mode: "web",
+      });
+    }
+
+    // ✅ enforce max_devices SOLO cuando viene install_id (Electron)
     const planId = String(enriched.plan || "starter");
     const limits = getPlanLimits(planId);
 
-    const maxDevicesRaw =
-      typeof limits.maxDevices === "number" ? limits.maxDevices : 1;
+    const maxDevicesRaw = typeof limits.maxDevices === "number" ? limits.maxDevices : 1;
     const maxDevices = maxDevicesRaw === -1 ? -1 : Math.max(1, maxDevicesRaw);
 
-    const iid = String(install_id || "").trim();
     const dname = String(device_name || "").trim() || null;
     const aver = String(app_version || "").trim() || null;
     const wantsForce = !!force;
-
-    if (maxDevices !== -1 && !iid) {
-      return res.status(400).json({ ok: false, error: "install_id requerido para este plan" });
-    }
 
     if (maxDevices !== -1) {
       const active = listActiveSessions(userRow.id);
@@ -607,7 +617,7 @@ app.post("/api/auth/login", async (req, res) => {
         revokeOldestSessions(userRow.id, toRevoke);
       }
 
-      // registrar/refresh de sesión
+      // registrar/refresh de sesión (Electron)
       upsertSession({
         userId: userRow.id,
         installId: iid,
@@ -616,8 +626,7 @@ app.post("/api/auth/login", async (req, res) => {
       });
     }
 
-    const token = createToken(userRow);
-    return res.json({ token, user: enriched });
+    return res.json({ token, user: enriched, mode: "device" });
   } catch (err) {
     console.error("Error en /api/auth/login", err);
     return res.status(500).json({ error: "Error interno" });
@@ -1085,7 +1094,8 @@ app.post("/api/admin/users/set-password", requireAdmin, async (req, res) => {
     const newPass = String(req.body?.new_password || "").trim();
 
     if (!email || !isValidEmail(email)) return res.status(400).json({ ok: false, error: "email inválido" });
-    if (!newPass || newPass.length < 6) return res.status(400).json({ ok: false, error: "new_password mínimo 6 chars" });
+    if (!newPass || newPass.length < 6)
+      return res.status(400).json({ ok: false, error: "new_password mínimo 6 chars" });
 
     const user = getUserByEmail(email);
     if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
@@ -1234,9 +1244,9 @@ app.post("/api/admin/licenses/revoke-activation", requireAdmin, (req, res) => {
     const lic = getLicenseByKey(key);
     if (!lic) return res.status(404).json({ ok: false, error: "Licencia no encontrada" });
 
-    const info = db.prepare(
-      "DELETE FROM license_activations WHERE license_id = ? AND install_id = ?"
-    ).run(lic.id, iid);
+    const info = db
+      .prepare("DELETE FROM license_activations WHERE license_id = ? AND install_id = ?")
+      .run(lic.id, iid);
 
     return res.json({ ok: true, deleted: info.changes });
   } catch (err) {
@@ -1296,9 +1306,9 @@ app.post("/api/admin/sessions/revoke", requireAdmin, (req, res) => {
     if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
 
     const now = isoNow();
-    const info = db.prepare(
-      `UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND install_id = ?`
-    ).run(now, user.id, iid);
+    const info = db
+      .prepare(`UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND install_id = ?`)
+      .run(now, user.id, iid);
 
     return res.json({ ok: true, revoked: info.changes });
   } catch (err) {
@@ -1319,9 +1329,9 @@ app.post("/api/admin/sessions/reset", requireAdmin, (req, res) => {
     if (!user) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
 
     const now = isoNow();
-    const info = db.prepare(
-      `UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`
-    ).run(now, user.id);
+    const info = db
+      .prepare(`UPDATE user_sessions SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL`)
+      .run(now, user.id);
 
     return res.json({ ok: true, revoked: info.changes });
   } catch (err) {
