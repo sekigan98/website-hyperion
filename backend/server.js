@@ -837,7 +837,11 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
 
     const key = generateLicenseKey();
     const now = new Date();
-
+    
+// ✅ opcional: desactivar cualquier licencia activa anterior del usuario
+    db.prepare(`UPDATE licenses SET status = 'revoked' WHERE user_id = ? AND status = 'active'`)
+    .run(user.id);
+    
     const expDays = Number(expiresInDays);
     let expiresAt = null;
     if (Number.isFinite(expDays) && expDays > 0 && planId !== "lifetime") {
