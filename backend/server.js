@@ -1342,6 +1342,30 @@ app.post("/api/admin/sessions/reset", requireAdmin, (req, res) => {
   }
 });
 
+// 10) Admin: eliminar licencia (y activaciones asociadas)
+// POST /api/admin/licenses/delete
+// body: { key }
+app.post("/api/admin/licenses/delete", requireAdmin, (req, res) => {
+  try {
+    const key = String(req.body?.key || "").trim();
+    if (!key) return res.status(400).json({ ok: false, error: "key requerido" });
+
+    const lic = getLicenseByKey(key);
+    if (!lic) return res.status(404).json({ ok: false, error: "Licencia no encontrada" });
+
+    // primero activaciones, porque tienen FK a licenses
+    db.prepare("DELETE FROM license_activations WHERE license_id = ?").run(lic.id);
+
+    // luego la licencia
+    const info = db.prepare("DELETE FROM licenses WHERE id = ?").run(lic.id);
+
+    return res.json({ ok: true, deleted: info.changes });
+  } catch (err) {
+    console.error("Error /api/admin/licenses/delete", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
 // =========================
 // Start
 // =========================
