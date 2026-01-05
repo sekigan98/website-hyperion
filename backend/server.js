@@ -358,9 +358,11 @@ function requireAdmin(req, res, next) {
   return next();
 }
 
-function generateLicenseKey() {
-  const raw = crypto.randomBytes(8).toString("hex").toUpperCase();
-  return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}-${raw.slice(12, 16)}`;
+function generateLicenseKey(planId = "starter") {
+  const plan = String(planId).toUpperCase(); // AGENCY / PRO / LIFETIME / STARTER
+  const part1 = crypto.randomBytes(3).toString("hex").toUpperCase(); // 6 chars
+  const part2 = crypto.randomBytes(3).toString("hex").toUpperCase(); // 6 chars
+  return `HYP-${plan}-${part1}-${part2}`;
 }
 
 function cmpSemver(a, b) {
