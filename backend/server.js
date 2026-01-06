@@ -137,7 +137,7 @@ const PLANS = [
     highlight: true,
     cta: "Probar Hyperion Pro",
     features: [
-      "Hasta 15 cuentas de WhatsApp",
+      "Hasta 8 cuentas de WhatsApp",
       "Warmup inteligente",
       "Stats avanzadas por cuenta",
       "Soporte prioritario",
@@ -148,7 +148,7 @@ const PLANS = [
     id: "lifetime",
     name: "Lifetime",
     tag: "Pago único",
-    price: "$699",
+    price: "$1499",
     price_suffix: "pago único",
     highlight: false,
     cta: "Comprar licencia Lifetime",
