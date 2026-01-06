@@ -145,6 +145,21 @@ const PLANS = [
     ],
   },
   {
+    id: "freelancer",
+    name: "Freelancer",
+    tag: "Independientes",
+    price: "$29",
+    price_suffix: "/ mes",
+    highlight: false,
+    cta: "Elegir Freelancer",
+    features: [
+      "3 cuentas vinculadas",
+      "Warmup habilitado",
+      "3000 mensajes por día",
+      "1 dispositivo instalado",
+    ],
+  },
+  {
     id: "lifetime",
     name: "Lifetime",
     tag: "Pago único",
@@ -194,6 +209,13 @@ const PLAN_LIMITS = {
     warmupEnabled: true,
     maxDevices: 2,
   },
+  freelancer: {
+    maxAccounts: 3,
+    maxWorkers: 3,
+    maxMessagesPerDay: 3000,
+    warmupEnabled: true,
+    maxDevices: 1,
+  },
   lifetime: {
     maxAccounts: 20,
     maxWorkers: 20,
@@ -210,7 +232,7 @@ const PLAN_LIMITS = {
   },
 };
 
-const PLAN_DEVICE_LIMIT = { starter: 1, pro: 2, lifetime: 5, agency: 3 };
+const PLAN_DEVICE_LIMIT = { starter: 1, pro: 2, freelancer: 1, lifetime: 5, agency: 3 };
 const DEFAULT_MAX_ACTIVATIONS = 1;
 
 // =========================
@@ -393,7 +415,7 @@ function isValidEmail(email) {
 }
 
 // prioridad (más alto = “mejor plan”)
-const PLAN_RANK = { starter: 0, pro: 1, agency: 2, lifetime: 3 };
+const PLAN_RANK = { starter: 0, freelancer: 1, pro: 2, agency: 3, lifetime: 4 };
 
 function pickBestPlan(planIds = []) {
   let best = "starter";
