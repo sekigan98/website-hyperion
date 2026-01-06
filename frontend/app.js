@@ -368,6 +368,7 @@ function formatPlanLabel(planKey) {
     case "trial": return "Trial (demo)";
     case "entrepreneur":
     case "emprendedor": return "Emprendedor";
+    case "freelancer": return "Freelancer";
     case "pro": return "Pro";
     case "pro_demo": return "Pro (demo)";
     case "agency": return "Agency";
