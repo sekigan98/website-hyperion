@@ -1208,7 +1208,7 @@ function initChatWidget() {
       "• Starter: U$D 0/mes — 1 cuenta, campañas básicas, 1 dispositivo.",
       "• Pro: U$D 79/mes — hasta 5 cuentas, warmup inteligente, soporte prioritario.",
       "• Agency: U$D 299/mes — 10+ cuentas, onboarding dedicado.",
-      "• Lifetime: U$D 699 pago único — hasta 10 cuentas, sin renovaciones.",
+      "• Lifetime: U$D 1500 pago único — hasta 10 cuentas, sin renovaciones.",
       "",
       "¿Querés que te recomiende el ideal según tu volumen?",
     ].join("\n");
@@ -1223,7 +1223,7 @@ function initChatWidget() {
   on(quick3, "click", () => {
     sendMessage(
       "Soporte",
-      "Para soporte urgente, abrí un ticket en tu dashboard o escribinos a soporte@hyperion.com."
+      "Para soporte urgente, escribinos por WhatsApp al +54 9 11 6963-6251 o al email soporte@hyperionsite.com.ar."
     );
   });
 
