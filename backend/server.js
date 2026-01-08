@@ -161,9 +161,9 @@ const PLANS = [
   },
   {
     id: "lifetime",
-    name: "Lifetime",
-    tag: "Pago único",
-    price: "$1499",
+    name: "Supreme",
+    tag: "Pago anual",
+    price: "$2499",
     price_suffix: "pago único",
     highlight: false,
     cta: "Comprar licencia Lifetime",
