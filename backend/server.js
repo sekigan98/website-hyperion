@@ -166,7 +166,7 @@ const PLANS = [
     price: "$2499",
     price_suffix: "pago único",
     highlight: false,
-    cta: "Comprar licencia Lifetime",
+    cta: "Comprar licencia Supreme",
     features: [
       "Hasta 20 cuentas de WhatsApp",
       "Mensajes ilimitados",
