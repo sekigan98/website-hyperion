@@ -164,7 +164,7 @@ const PLANS = [
     name: "Supreme",
     tag: "Pago anual",
     price: "$2499",
-    price_suffix: "pago único",
+    price_suffix: "pago anual",
     highlight: false,
     cta: "Comprar licencia Supreme",
     features: [
