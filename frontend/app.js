@@ -65,6 +65,8 @@ const GA4_ID = String(readMeta("hyperion-ga4-id") || "").trim();
 
 const THEME_KEY = "hyperion_theme";
 const COOKIE_KEY = "hyperion_cookie_consent";
+const LOGO_DARK_SRC = "assets/hyperion-logo.png";
+const LOGO_LIGHT_SRC = "assets/hyperion_logo_lightmode.png";
 
 // ------------------------------------------------------------
 // Utils DOM
@@ -94,6 +96,18 @@ function showError(el, msg) {
 }
 
 function hideError(el) {
+  if (!el) return;
+  el.hidden = true;
+  el.textContent = "";
+}
+
+function showMessage(el, msg) {
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = msg || "";
+}
+
+function hideMessage(el) {
   if (!el) return;
   el.hidden = true;
   el.textContent = "";
@@ -168,6 +182,45 @@ function applyTheme(theme) {
   } else {
     root.setAttribute("data-theme", "dark");
   }
+  updateBrandLogos(theme);
+}
+
+function initBrandLogos() {
+  document.querySelectorAll("img.brand-logo").forEach((img) => {
+    if (!img.dataset.logoDark) {
+      img.dataset.logoDark = img.getAttribute("src") || LOGO_DARK_SRC;
+    }
+    if (!img.dataset.logoLight) {
+      const darkSrc = img.dataset.logoDark;
+      if (darkSrc.includes("hyperion-logo.png")) {
+        img.dataset.logoLight = darkSrc.replace("hyperion-logo.png", "hyperion_logo_lightmode.png");
+      } else {
+        img.dataset.logoLight = LOGO_LIGHT_SRC;
+      }
+    }
+  });
+}
+
+function updateBrandLogos(theme) {
+  initBrandLogos();
+  const isLight = theme === "light";
+  document.querySelectorAll("img.brand-logo").forEach((img) => {
+    const darkSrc = img.dataset.logoDark || LOGO_DARK_SRC;
+    const lightSrc = img.dataset.logoLight || LOGO_LIGHT_SRC;
+    const desired = isLight ? lightSrc : darkSrc;
+    if (img.getAttribute("src") !== desired) {
+      img.setAttribute("src", desired);
+    }
+
+    const picture = img.closest("picture");
+    if (picture) {
+      const source = picture.querySelector("source");
+      if (source) {
+        source.setAttribute("srcset", desired);
+        source.setAttribute("media", "all");
+      }
+    }
+  });
 }
 
 function initThemeToggle() {
@@ -389,6 +442,7 @@ function initAuthPage() {
   const registerForm = $("#register-form");
   const loginError = $("#login-error");
   const registerError = $("#register-error");
+  const registerSuccess = $("#register-success");
   const showRegisterLink = $("#show-register");
   const socialButtons = $all("[data-oauth]");
 
@@ -407,9 +461,15 @@ function initAuthPage() {
     if (isHidden) {
       registerForm.removeAttribute("hidden");
       loginForm.setAttribute("hidden", "true");
+      hideError(registerError);
+      hideMessage(registerSuccess);
+      hideError(loginError);
     } else {
       loginForm.removeAttribute("hidden");
       registerForm.setAttribute("hidden", "true");
+      hideError(registerError);
+      hideMessage(registerSuccess);
+      hideError(loginError);
     }
   });
 
@@ -477,6 +537,7 @@ function initAuthPage() {
   on(registerForm, "submit", async (e) => {
     e.preventDefault();
     hideError(registerError);
+    hideMessage(registerSuccess);
     setBusy(registerForm, true);
 
     const formData = new FormData(registerForm);
@@ -507,19 +568,10 @@ function initAuthPage() {
         return;
       }
 
-      // 2) Autologin
-      const login = await requestJson("/auth/login", {
-        method: "POST",
-        body: { email, password },
-      });
-
-      if (!login.res.ok || login.data?.ok === false || !login.data?.token) {
-        window.location.href = "login.html";
-        return;
-      }
-
-      setSession(login.data.token, login.data.user);
-      window.location.href = "dashboard.html";
+      showMessage(
+        registerSuccess,
+        "Te enviamos un email para validar la cuenta. Revisá tu bandeja (y spam)."
+      );
     } catch (err) {
       console.error("[auth] register error:", err);
       showError(registerError, "No se pudo conectar con el servidor. Intentá de nuevo.");
