@@ -768,6 +768,12 @@ app.post("/api/auth/login", async (req, res) => {
     if (!userRow) return res.status(400).json({ error: "Credenciales inválidas" });
 
     if (!userRow.email_verified) {
+      try {
+        const { token } = createVerificationForUser(userRow.id);
+        await sendVerificationEmail({ email: emailNorm, token });
+      } catch (err) {
+        console.error("Error reenviando verificación en login", err);
+      }
       return res.status(403).json({ error: "Cuenta sin validar. Revisá tu email." });
     }
 
