@@ -4,12 +4,14 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 const db = require("./db");
 
 const app = express();
 app.set("trust proxy", 1);
 
 const PORT = process.env.PORT || 4000;
+const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${PORT}`;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -18,6 +20,12 @@ app.use(express.urlencoded({ extended: true }));
 const JWT_SECRET =
   process.env.JWT_SECRET || "guk26ljOkyzbusaV7uK0ilw4s1b0AO3762AHxDiOrQw=";
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "hyperion-sekigan-1998";
+const SMTP_HOST = process.env.SMTP_HOST || "";
+const SMTP_PORT = Number(process.env.SMTP_PORT || 0);
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+const SMTP_SECURE = String(process.env.SMTP_SECURE || "").toLowerCase() === "true";
+const SMTP_FROM = process.env.SMTP_FROM || "Hyperion <hyperionsitearg@gmail.com>";
 
 // -------------------------
 // DB schema (se crea al boot)
@@ -30,7 +38,18 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   plan TEXT DEFAULT 'starter',
+  email_verified INTEGER DEFAULT 0,
+  email_verified_at TEXT,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TEXT NOT NULL,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS licenses (
@@ -108,6 +127,16 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
   FOREIGN KEY(ticket_id) REFERENCES tickets(id)
 );
 `);
+
+function ensureColumn(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  const exists = columns.some((col) => col.name === column);
+  if (exists) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+ensureColumn("users", "email_verified", "INTEGER DEFAULT 0");
+ensureColumn("users", "email_verified_at", "TEXT");
 
 // =========================
 // Planes + límites técnicos
@@ -421,6 +450,70 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function getMailTransport() {
+  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS,
+    },
+  });
+}
+
+function createEmailVerificationToken() {
+  return crypto.randomBytes(24).toString("hex");
+}
+
+function buildVerificationLink(token) {
+  return `${API_BASE_URL}/api/auth/verify?token=${encodeURIComponent(token)}`;
+}
+
+async function sendVerificationEmail({ email, token }) {
+  const transport = getMailTransport();
+  if (!transport) {
+    throw new Error("SMTP_NOT_CONFIGURED");
+  }
+
+  const verifyUrl = buildVerificationLink(token);
+  const subject = "Validá tu cuenta de Hyperion";
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
+      <h2>Validación de cuenta</h2>
+      <p>Gracias por registrarte en Hyperion. Para activar tu cuenta, hacé clic en el botón:</p>
+      <p>
+        <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;">
+          Validar cuenta
+        </a>
+      </p>
+      <p>Si el botón no funciona, copiá y pegá este link en tu navegador:</p>
+      <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+    </div>
+  `;
+
+  await transport.sendMail({
+    from: SMTP_FROM,
+    to: email,
+    subject,
+    html,
+  });
+}
+
+function createVerificationForUser(userId) {
+  const token = createEmailVerificationToken();
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString();
+  db.prepare("DELETE FROM email_verifications WHERE user_id = ?").run(userId);
+  db.prepare(
+    "INSERT INTO email_verifications (user_id, token, expires_at, created_at) VALUES (?,?,?,?)"
+  ).run(userId, token, expiresAt, new Date().toISOString());
+  return { token, expiresAt };
+}
+
 // prioridad (más alto = “mejor plan”)
 const PLAN_RANK = { starter: 0, freelancer: 1, pro: 2, agency: 3, lifetime: 4 };
 
@@ -602,23 +695,35 @@ app.post("/api/auth/register", async (req, res) => {
     }
 
     const emailNorm = String(email).trim().toLowerCase();
-    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(emailNorm);
-    if (existing) return res.status(400).json({ error: "Ese email ya está registrado" });
+    if (!isValidEmail(emailNorm)) {
+      return res.status(400).json({ error: "Email inválido" });
+    }
+    const existing = db.prepare("SELECT id, email_verified FROM users WHERE email = ?").get(emailNorm);
+    if (existing) {
+      if (existing.email_verified) {
+        return res.status(400).json({ error: "Ese email ya está registrado" });
+      }
+      const { token } = createVerificationForUser(existing.id);
+      await sendVerificationEmail({ email: emailNorm, token });
+      return res.json({ ok: true, status: "verification_resent" });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
     const plan = "starter";
 
     const info = db
-      .prepare("INSERT INTO users (email, password_hash, plan) VALUES (?,?,?)")
-      .run(emailNorm, passwordHash, plan);
+      .prepare("INSERT INTO users (email, password_hash, plan, email_verified) VALUES (?,?,?,?)")
+      .run(emailNorm, passwordHash, plan, 0);
 
-    const userRow = db.prepare("SELECT id, email, plan FROM users WHERE id = ?").get(info.lastInsertRowid);
-    const user = enrichUserForClient(userRow);
-    const token = createToken(userRow);
+    const { token } = createVerificationForUser(info.lastInsertRowid);
+    await sendVerificationEmail({ email: emailNorm, token });
 
-    return res.json({ token, user });
+    return res.json({ ok: true, status: "verification_sent" });
   } catch (err) {
     console.error("Error en /api/auth/register", err);
+    if (String(err?.message || "") === "SMTP_NOT_CONFIGURED") {
+      return res.status(500).json({ error: "Email de verificación no configurado" });
+    }
     return res.status(500).json({ error: "Error interno" });
   }
 });
@@ -637,6 +742,10 @@ app.post("/api/auth/login", async (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     const userRow = db.prepare("SELECT * FROM users WHERE email = ?").get(emailNorm);
     if (!userRow) return res.status(400).json({ error: "Credenciales inválidas" });
+
+    if (!userRow.email_verified) {
+      return res.status(403).json({ error: "Cuenta sin validar. Revisá tu email." });
+    }
 
     const ok = await bcrypt.compare(password, userRow.password_hash);
     if (!ok) return res.status(400).json({ error: "Credenciales inválidas" });
@@ -703,6 +812,40 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (err) {
     console.error("Error en /api/auth/login", err);
     return res.status(500).json({ error: "Error interno" });
+  }
+});
+
+app.get("/api/auth/verify", (req, res) => {
+  try {
+    const token = String(req.query.token || "").trim();
+    if (!token) {
+      return res.status(400).send("Token inválido.");
+    }
+
+    const verification = db
+      .prepare("SELECT * FROM email_verifications WHERE token = ?")
+      .get(token);
+
+    if (!verification) {
+      return res.status(404).send("Token de verificación no encontrado.");
+    }
+
+    const isExpired = new Date(verification.expires_at).getTime() < Date.now();
+    if (isExpired) {
+      db.prepare("DELETE FROM email_verifications WHERE token = ?").run(token);
+      return res.status(410).send("El link de verificación expiró. Registrate nuevamente.");
+    }
+
+    db.prepare("UPDATE users SET email_verified = 1, email_verified_at = ? WHERE id = ?").run(
+      new Date().toISOString(),
+      verification.user_id
+    );
+    db.prepare("DELETE FROM email_verifications WHERE user_id = ?").run(verification.user_id);
+
+    return res.status(200).send("Cuenta validada. Ya podés iniciar sesión en Hyperion.");
+  } catch (err) {
+    console.error("Error en /api/auth/verify", err);
+    return res.status(500).send("Error interno");
   }
 });
 
