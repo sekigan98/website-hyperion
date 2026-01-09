@@ -486,13 +486,13 @@ async function sendVerificationEmail({ email, token }) {
 
   const verifyUrl = buildVerificationLink(token);
   const subject = "Validá tu cuenta de Hyperion";
-  const logoUrl = `${WEB_BASE_URL}/assets/hyperion_logo_lightmode.png`;
+  const logoUrl = `${WEB_BASE_URL}/assets/hyperion-logo`;
   const html = `
     <div style="background:#f8fafc;padding:32px 20px;font-family:Arial,sans-serif;color:#0f172a;">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:16px;box-shadow:0 18px 40px rgba(15,23,42,0.08);overflow:hidden;">
         <tr>
           <td style="padding:28px 32px;background:linear-gradient(135deg,#9005bb,#6d28d9);text-align:left;">
-            <img src="${logoUrl}" alt="Hyperion" style="display:block;height:28px;" />
+            <img src="${logoUrl}" alt="Hyperion" style="display:block;height:34px;" />
             <p style="margin:16px 0 0;color:#f8fafc;font-size:15px;">Activá tu acceso y empezá a gestionar tus licencias.</p>
           </td>
         </tr>
