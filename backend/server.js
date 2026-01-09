@@ -1,4 +1,4 @@
-// backend/server.js (WEBSITE BACKEND) - max_devices + /api/me + user_sessions + ADMIN API
+// backend/server.js (WEBSITE BACKEND) - max_devices + /api/me + user_sessions + ADMIN API + /api/license/status
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -202,10 +202,11 @@ const PLAN_LIMITS = {
     warmupEnabled: false,
     maxDevices: 1,
   },
+  // ✅ FIX: Pro alineado con tu página (8 cuentas / 8 workers)
   pro: {
-    maxAccounts: 15,
-    maxWorkers: 15,
-    maxMessagesPerDay: 5000,
+    maxAccounts: 8,
+    maxWorkers: 8,
+    maxMessagesPerDay: 6000,
     warmupEnabled: true,
     maxDevices: 2,
   },
@@ -232,7 +233,13 @@ const PLAN_LIMITS = {
   },
 };
 
-const PLAN_DEVICE_LIMIT = { starter: 1, pro: 2, freelancer: 1, lifetime: 5, agency: 3 };
+const PLAN_DEVICE_LIMIT = {
+  starter: 1,
+  pro: 2,
+  freelancer: 1,
+  lifetime: 5,
+  agency: 3,
+};
 const DEFAULT_MAX_ACTIVATIONS = 1;
 
 // =========================
@@ -416,6 +423,48 @@ function isValidEmail(email) {
 
 // prioridad (más alto = “mejor plan”)
 const PLAN_RANK = { starter: 0, freelancer: 1, pro: 2, agency: 3, lifetime: 4 };
+
+// ✅ helpers para label + best license
+function getPlanMeta(planId) {
+  const pid = String(planId || "starter").toLowerCase();
+  return (
+    PLANS.find((p) => p.id === pid) ||
+    PLANS.find((p) => p.id === "starter") || { id: "starter", name: "Starter" }
+  );
+}
+
+// devuelve la “mejor” licencia activa del usuario (por rank, y si empata, por mayor vencimiento)
+function getBestActiveLicenseForUser(userId) {
+  const rows = db
+    .prepare("SELECT id, plan_id, status, expires_at, max_activations, created_at FROM licenses WHERE user_id = ?")
+    .all(userId);
+
+  const active = rows.filter(isLicenseActiveNow);
+  if (active.length === 0) return null;
+
+  active.sort((a, b) => {
+    const ra = PLAN_RANK[String(a.plan_id || "").toLowerCase()] ?? -1;
+    const rb = PLAN_RANK[String(b.plan_id || "").toLowerCase()] ?? -1;
+    if (rb !== ra) return rb - ra;
+
+    const ea = a.expires_at ? Date.parse(a.expires_at) : Number.POSITIVE_INFINITY;
+    const eb = b.expires_at ? Date.parse(b.expires_at) : Number.POSITIVE_INFINITY;
+    return eb - ea;
+  });
+
+  return active[0];
+}
+
+function decodeTokenMaybe(req) {
+  const header = String(req.headers.authorization || "");
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!token) return null;
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
 
 function pickBestPlan(planIds = []) {
   let best = "starter";
@@ -657,6 +706,79 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+// =========================
+// ✅ Nuevo endpoint de status “claro” para el cliente
+// =========================
+// - Sin token => authenticated:false + plan Starter + limits
+// - Con token => authenticated:true + user + license(best) + limits + label
+app.get("/api/license/status", (req, res) => {
+  try {
+    const payload = decodeTokenMaybe(req);
+
+    // SIN auth => free/starter
+    if (!payload) {
+      const planId = "starter";
+      const meta = getPlanMeta(planId);
+      const limits = getPlanLimits(planId);
+      return res.json({
+        ok: true,
+        authenticated: false,
+        plan: planId,
+        label: meta.name,
+        limits,
+        user: null,
+        license: null,
+      });
+    }
+
+    // Con auth: si viene X-Install-Id, validamos sesión (modo device)
+    const iid = String(req.headers["x-install-id"] || "").trim();
+    if (iid) {
+      if (!isSessionAllowed(payload.id, iid)) {
+        return res.status(401).json({ ok: false, error: "session_revoked" });
+      }
+    }
+
+    const userRow = db.prepare("SELECT id, email, plan, created_at FROM users WHERE id = ?").get(payload.id);
+    if (!userRow) return res.status(404).json({ ok: false, error: "Usuario no encontrado" });
+
+    // “touch” sesión si viene iid
+    const aver = String(req.headers["x-app-version"] || "").trim() || null;
+    if (iid) {
+      try {
+        upsertSession({ userId: userRow.id, installId: iid, deviceName: null, appVersion: aver });
+      } catch (_) {}
+    }
+
+    const user = enrichUserForClient(userRow);
+    const bestLic = getBestActiveLicenseForUser(userRow.id);
+    const meta = getPlanMeta(user.plan);
+
+    return res.json({
+      ok: true,
+      authenticated: true,
+      plan: user.plan,
+      label: meta.name,
+      limits: getPlanLimits(user.plan),
+      user,
+      license: bestLic
+        ? {
+            plan_key: bestLic.plan_id,
+            plan_name: getPlanMeta(bestLic.plan_id).name,
+            status: bestLic.status,
+            expires_at: bestLic.expires_at,
+            remaining_days: remainingDaysFromExpires(bestLic.expires_at),
+            max_activations: bestLic.max_activations,
+            activations_used: countLicenseActivations(bestLic.id),
+          }
+        : null,
+    });
+  } catch (err) {
+    console.error("Error en /api/license/status", err);
+    return res.status(500).json({ ok: false, error: "Error interno" });
+  }
+});
+
 // ✅ /api/me para Electron refreshSessionFromServer()
 // Requiere Authorization + (opcional) X-Install-Id (si viene, valida sesión)
 app.get("/api/me", authMiddleware, (req, res) => {
@@ -679,7 +801,23 @@ app.get("/api/me", authMiddleware, (req, res) => {
     }
 
     const user = enrichUserForClient(userRow);
-    return res.json({ ok: true, user });
+    const bestLic = getBestActiveLicenseForUser(userRow.id);
+
+    return res.json({
+      ok: true,
+      user,
+      license: bestLic
+        ? {
+            plan_key: bestLic.plan_id,
+            plan_name: getPlanMeta(bestLic.plan_id).name,
+            status: bestLic.status,
+            expires_at: bestLic.expires_at,
+            remaining_days: remainingDaysFromExpires(bestLic.expires_at),
+            max_activations: bestLic.max_activations,
+            activations_used: countLicenseActivations(bestLic.id),
+          }
+        : null,
+    });
   } catch (err) {
     console.error("Error en /api/me", err);
     return res.status(500).json({ error: "Error interno" });
@@ -857,16 +995,20 @@ app.post("/api/licenses/issue", requireAdmin, (req, res) => {
     const user = db.prepare("SELECT * FROM users WHERE email = ?").get(emailNorm);
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    const key = generateLicenseKey();
+    // ✅ FIX: key incluye planId
+    const key = generateLicenseKey(planId);
     const now = new Date();
-    
-// ✅ opcional: desactivar cualquier licencia activa anterior del usuario
-    db.prepare(`UPDATE licenses SET status = 'revoked' WHERE user_id = ? AND status = 'active'`)
-    .run(user.id);
-    
-    const expDays = Number(expiresInDays);
+
+    // ✅ opcional: desactivar cualquier licencia activa anterior del usuario
+    db.prepare(`UPDATE licenses SET status = 'revoked' WHERE user_id = ? AND status = 'active'`).run(user.id);
+
+    // ✅ Supreme anual (id lifetime): si no mandan expiresInDays, default 365 días
+    const expDaysRaw = Number(expiresInDays);
+    let expDays = Number.isFinite(expDaysRaw) ? Math.trunc(expDaysRaw) : null;
+    if (expDays == null && String(planId).toLowerCase() === "lifetime") expDays = 365;
+
     let expiresAt = null;
-    if (Number.isFinite(expDays) && expDays > 0 && planId !== "lifetime") {
+    if (expDays != null && expDays > 0) {
       expiresAt = new Date(now.getTime() + expDays * 24 * 60 * 60 * 1000);
     }
 
@@ -929,7 +1071,15 @@ app.post("/api/licenses/activate", authMiddleware, (req, res) => {
     const iid = String(installId).trim();
 
     if (!key || !iid) {
-      return res.status(400).json({ ok: false, error: "license_key/key e install_id/installId son requeridos" });
+      return res.status(400).json({
+        ok: false,
+        error: "license_key/key e install_id/installId son requeridos",
+      });
+    }
+
+    // ✅ HARDEN: no permitimos activar si la sesión device está revocada/expirada
+    if (!isSessionAllowed(req.user.id, iid)) {
+      return res.status(401).json({ ok: false, error: "session_revoked" });
     }
 
     const license = db.prepare("SELECT * FROM licenses WHERE key = ?").get(key);
@@ -1056,12 +1206,14 @@ function countLicenseActivations(licenseId) {
 }
 
 function getLicenseActivations(licenseId) {
-  return db.prepare(
-    `SELECT install_id, device_name, app_version, first_activated_at, last_seen_at
+  return db
+    .prepare(
+      `SELECT install_id, device_name, app_version, first_activated_at, last_seen_at
      FROM license_activations
      WHERE license_id = ?
      ORDER BY COALESCE(last_seen_at, first_activated_at) DESC`
-  ).all(licenseId);
+    )
+    .all(licenseId);
 }
 
 function isValidPlanId(planId) {
