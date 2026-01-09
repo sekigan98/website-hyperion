@@ -25,12 +25,15 @@
   <header class="site-header">
     <div class="container header-inner">
       <a href="index.html" class="brand" aria-label="Hyperion — Inicio">
-        <img
-          src="assets/hyperion-logo.png"
-          alt="Hyperion"
-          class="brand-logo"
-          decoding="async"
-        />
+        <picture>
+          <source srcset="assets/hyperion_logo_lightmode.png" media="(prefers-color-scheme: light)" />
+          <img
+            src="assets/hyperion-logo.png"
+            alt="Hyperion"
+            class="brand-logo"
+            decoding="async"
+          />
+        </picture>
       </a>
 
       <nav class="main-nav" aria-label="Navegación principal">
@@ -58,12 +61,18 @@
     <section class="hero" aria-label="Detalles técnicos">
       <div class="container hero-inner">
         <div class="hero-copy">
-          <img
-            src="assets/hyperion-logo.png"
-            alt="Hyperion"
-            class="hero-logo"
-            decoding="async"
-          />
+            <picture>
+              <source
+                srcset="assets/hyperion_logo_lightmode.png"
+                media="(prefers-color-scheme: light)"
+              />
+              <img
+                src="assets/hyperion-logo.png"
+                alt="Hyperion"
+                class="hero-logo"
+                decoding="async"
+              />
+            </picture>
           <h1>Detalles técnicos y operación confiable</h1>
           <p class="hero-subtitle">
             Hyperion está diseñado para equipos que necesitan control, trazabilidad y estabilidad.

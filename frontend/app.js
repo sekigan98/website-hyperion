@@ -65,8 +65,6 @@ const GA4_ID = String(readMeta("hyperion-ga4-id") || "").trim();
 
 const THEME_KEY = "hyperion_theme";
 const COOKIE_KEY = "hyperion_cookie_consent";
-const CHAT_STORAGE_KEY = "hyperion_chat_history";
-const CHAT_STATE_KEY = "hyperion_chat_open";
 
 // ------------------------------------------------------------
 // Utils DOM
@@ -132,11 +130,17 @@ function toDateShort(iso) {
   return d.toLocaleDateString();
 }
 
-function toChatTime(date = new Date()) {
-  return date.toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+
+function isRealEmail(email) {
+  if (!EMAIL_REGEX.test(email)) return false;
+  if (email.includes("..")) return false;
+  const parts = email.split("@");
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+  if (!local || !domain) return false;
+  if (domain.startsWith("-") || domain.endsWith("-")) return false;
+  return true;
 }
 
 function setBusy(form, isBusy) {
@@ -855,6 +859,15 @@ function initNewsletterForm() {
     const formData = new FormData(form);
     const email = String(formData.get("email") || "").trim();
 
+    if (!isRealEmail(email)) {
+      if (msgEl) {
+        msgEl.hidden = false;
+        msgEl.textContent = "Ingresá un email válido (ej: nombre@dominio.com).";
+      }
+      setBusy(form, false);
+      return;
+    }
+
     try {
       const { res, data } = await requestJson("/newsletter", {
         method: "POST",
@@ -1058,182 +1071,6 @@ async function initBlog() {
 }
 
 // ------------------------------------------------------------
-// Chat widget
-// ------------------------------------------------------------
-function initChatWidget() {
-  const widget = document.getElementById("chat-widget");
-  if (!widget) return;
-  const toggle = document.getElementById("chat-toggle");
-  const panel = widget.querySelector(".chat-panel");
-  const messages = document.getElementById("chat-messages");
-  const typing = document.getElementById("chat-typing");
-  const quick1 = document.getElementById("chat-quick-1");
-  const quick2 = document.getElementById("chat-quick-2");
-  const quick3 = document.getElementById("chat-quick-3");
-  const minimize = document.getElementById("chat-minimize");
-  const controls = [quick1, quick2, quick3].filter(Boolean);
-  const history = [];
-  const maxMessages = 24;
-  const primaryAction = quick1 || quick2 || quick3;
-
-  const setControlsDisabled = (isDisabled) => {
-    controls.forEach((control) => {
-      control.disabled = !!isDisabled;
-    });
-  };
-
-  const persistHistory = () => {
-    if (!history.length) return;
-    try {
-      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(history.slice(-maxMessages)));
-    } catch (err) {
-      console.warn("[chat] persist error", err);
-    }
-  };
-
-  const loadHistory = () => {
-    try {
-      const raw = localStorage.getItem(CHAT_STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed
-        .filter((item) => item && typeof item.text === "string")
-        .slice(-maxMessages);
-    } catch (err) {
-      console.warn("[chat] load error", err);
-      return [];
-    }
-  };
-
-  const renderMessage = (entry) => {
-    if (!messages) return;
-    const item = document.createElement("div");
-    item.className = `chat-message chat-message--${entry.variant || "bot"}`;
-    const body = document.createElement("p");
-    body.textContent = entry.text;
-    const time = document.createElement("span");
-    time.className = "chat-message-time";
-    time.textContent = entry.time || toChatTime();
-    item.append(body, time);
-    messages.appendChild(item);
-  };
-
-  const addMessage = (text, variant = "bot", meta = {}) => {
-    if (!messages) return;
-    const entry = {
-      text,
-      variant,
-      time: meta.time || toChatTime(),
-    };
-    history.push(entry);
-    renderMessage(entry);
-    messages.scrollTop = messages.scrollHeight;
-    persistHistory();
-  };
-
-  const setTyping = (isVisible) => {
-    if (!typing) return;
-    typing.hidden = !isVisible;
-    setControlsDisabled(isVisible);
-  };
-
-  const respondWith = (text) => {
-    const delay = Math.min(1400, 420 + text.length * 12);
-    setTyping(true);
-    window.setTimeout(() => {
-      setTyping(false);
-      addMessage(text, "bot");
-    }, delay);
-  };
-
-  const sendMessage = (userText, replyText) => {
-    if (!userText) return;
-    addMessage(userText, "user");
-    respondWith(replyText);
-  };
-
-  const openPanel = () => {
-    if (!panel) return;
-    panel.removeAttribute("hidden");
-    window.requestAnimationFrame(() => widget.classList.add("is-open"));
-    toggle?.setAttribute("aria-expanded", "true");
-    primaryAction?.focus();
-    localStorage.setItem(CHAT_STATE_KEY, "true");
-  };
-
-  const closePanel = () => {
-    if (!panel) return;
-    widget.classList.remove("is-open");
-    window.setTimeout(() => {
-      if (!widget.classList.contains("is-open")) {
-        panel.setAttribute("hidden", "true");
-      }
-    }, 200);
-    toggle?.setAttribute("aria-expanded", "false");
-    localStorage.setItem(CHAT_STATE_KEY, "false");
-  };
-
-  const stored = loadHistory();
-  stored.forEach((entry) => {
-    history.push(entry);
-    renderMessage(entry);
-  });
-
-  if (!stored.length) {
-    addMessage(
-      "Hola 👋 Soy Hyperion Assistant. Puedo ayudarte con planes, licencias, soporte o demos. ¿Qué necesitás?",
-      "bot"
-    );
-  } else if (messages) {
-    messages.scrollTop = messages.scrollHeight;
-  }
-
-  on(toggle, "click", () => {
-    const isOpen = panel && !panel.hasAttribute("hidden");
-    if (!panel) return;
-    if (isOpen) {
-      closePanel();
-    } else {
-      openPanel();
-    }
-  });
-
-  on(minimize, "click", () => {
-    closePanel();
-  });
-
-  on(quick1, "click", () => {
-    const planSummary = [
-      "Planes disponibles:",
-      "• Starter: U$D 0/mes — 1 cuenta, campañas básicas, 1 dispositivo.",
-      "• Pro: U$D 79/mes — hasta 5 cuentas, warmup inteligente, soporte prioritario.",
-      "• Agency: U$D 299/mes — 10+ cuentas, onboarding dedicado.",
-      "• Lifetime: U$D 1500 pago único — hasta 10 cuentas, sin renovaciones.",
-      "",
-      "¿Querés que te recomiende el ideal según tu volumen?",
-    ].join("\n");
-
-    sendMessage("Ver planes", planSummary);
-  });
-
-  on(quick2, "click", () => {
-    sendMessage("Agendar demo", "Perfecto. Contame cuántas cuentas y qué volumen mensual estimás.");
-  });
-
-  on(quick3, "click", () => {
-    sendMessage(
-      "Soporte",
-      "Para soporte urgente, escribinos por WhatsApp al +54 9 11 6963-6251 o al email soporte@hyperionsite.com.ar."
-    );
-  });
-
-  if (localStorage.getItem(CHAT_STATE_KEY) === "true") {
-    openPanel();
-  }
-}
-
-// ------------------------------------------------------------
 // Bootstrap
 // ------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
@@ -1250,7 +1087,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initQuoteCalculator();
   initTickets();
   initBlog();
-  initChatWidget();
 });
 
 // Debug útil (podés borrarlo cuando quieras)

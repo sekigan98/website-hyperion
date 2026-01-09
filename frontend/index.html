@@ -68,12 +68,15 @@
   <header class="site-header">
     <div class="container header-inner">
       <a href="index.html" class="brand" aria-label="Hyperion — Inicio">
-        <img
-          src="assets/hyperion-logo.png"
-          alt="Hyperion"
-          class="brand-logo"
-          decoding="async"
-        />
+        <picture>
+          <source srcset="assets/hyperion_logo_lightmode.png" media="(prefers-color-scheme: light)" />
+          <img
+            src="assets/hyperion-logo.png"
+            alt="Hyperion"
+            class="brand-logo"
+            decoding="async"
+          />
+        </picture>
       </a>
 
       <nav class="main-nav" aria-label="Navegación principal">
@@ -101,12 +104,15 @@
     <section class="hero" aria-label="Presentación">
       <div class="container hero-inner">
         <div class="hero-copy">
-          <img
-            src="assets/hyperion-logo.png"
-            alt="Hyperion"
-            class="hero-logo"
-            decoding="async"
-          />
+          <picture>
+            <source srcset="assets/hyperion_logo_lightmode.png" media="(prefers-color-scheme: light)" />
+            <img
+              src="assets/hyperion-logo.png"
+              alt="Hyperion"
+              class="hero-logo"
+              decoding="async"
+            />
+          </picture>
 
           <h1>Más conversaciones, menos esfuerzo</h1>
           <p class="hero-subtitle">
@@ -180,7 +186,12 @@
               <li>Warmup desactivado</li>
               <li>1 dispositivo instalado</li>
             </ul>
-            <a href="login.html" class="btn btn-outline btn-block">Empezar gratis</a>
+            <a
+              href="https://wa.me/5491169636251?text=Hola%2C%20estoy%20interesado%20en%20el%20plan%20Starter."
+              class="btn btn-outline btn-block"
+              target="_blank"
+              rel="noopener"
+            >Empezar gratis</a>
           </article>
 
           <article class="card pricing-card">
@@ -193,7 +204,12 @@
               <li>3000 mensajes por día</li>
               <li>1 dispositivo instalado</li>
             </ul>
-            <a href="login.html" class="btn btn-outline btn-block">Elegir Freelancer</a>
+            <a
+              href="https://wa.me/5491169636251?text=Hola%2C%20estoy%20interesado%20en%20el%20plan%20Freelancer."
+              class="btn btn-outline btn-block"
+              target="_blank"
+              rel="noopener"
+            >Elegir Freelancer</a>
           </article>
 
           <article class="card pricing-card pricing-featured">
@@ -208,7 +224,12 @@
               <li>Soporte prioritario</li>
               <li>Hasta 2 dispositivos instalados</li>
             </ul>
-            <a href="login.html" class="btn btn-primary btn-block">Probar Hyperion Pro</a>
+            <a
+              href="https://wa.me/5491169636251?text=Hola%2C%20estoy%20interesado%20en%20el%20plan%20Pro."
+              class="btn btn-primary btn-block"
+              target="_blank"
+              rel="noopener"
+            >Probar Hyperion Pro</a>
           </article>
 
           <article class="card pricing-card">
@@ -223,7 +244,7 @@
               <li>Hasta 3 dispositivos instalados</li>
             </ul>
             <a
-              href="https://wa.me/5491169636251?text=Hola%2C%20quiero%20hablar%20con%20ventas%20sobre%20el%20plan%20Agency."
+              href="https://wa.me/5491169636251?text=Hola%2C%20estoy%20interesado%20en%20el%20plan%20Agency."
               class="btn btn-outline btn-block"
               target="_blank"
               rel="noopener"
@@ -241,7 +262,12 @@
               <li>Hasta 5 dispositivos instalados</li>
               <li>Renovación Anual</li>
             </ul>
-            <a href="login.html" class="btn btn-outline btn-block">Comprar Supreme</a>
+            <a
+              href="https://wa.me/5491169636251?text=Hola%2C%20estoy%20interesado%20en%20el%20plan%20Lifetime."
+              class="btn btn-outline btn-block"
+              target="_blank"
+              rel="noopener"
+            >Comprar Supreme</a>
           </article>
         </div>
 
@@ -466,7 +492,15 @@
           </p>
         </div>
         <form id="newsletter-form" class="newsletter-form">
-          <input type="email" name="email" placeholder="Tu email" required />
+          <input
+            type="email"
+            name="email"
+            placeholder="Tu email"
+            autocomplete="email"
+            pattern="^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$"
+            title="Ingresá un email válido (ej: nombre@dominio.com)."
+            required
+          />
           <button type="submit" class="btn btn-primary">Suscribirme</button>
           <p id="newsletter-msg" class="muted small" hidden></p>
         </form>
@@ -586,48 +620,6 @@
       </div>
     </div>
   </footer>
-
-  <div id="chat-widget" class="chat-widget" aria-live="polite">
-    <button id="chat-toggle" class="chat-toggle" type="button" aria-expanded="false">
-      <span class="chat-toggle-icon" aria-hidden="true">💬</span>
-      <span class="chat-toggle-text">Chat en vivo</span>
-      <span class="chat-toggle-status">En línea</span>
-    </button>
-    <div class="chat-panel" hidden>
-      <div class="chat-header">
-        <div class="chat-title">
-          <span class="chat-avatar" aria-hidden="true">HA</span>
-          <div>
-            <strong>Hyperion Assistant</strong>
-            <span class="muted small"><span class="chat-status-dot" aria-hidden="true"></span> En línea · Responde en minutos</span>
-          </div>
-        </div>
-        <div class="chat-header-actions">
-          <button id="chat-minimize" class="icon-button" type="button" aria-label="Minimizar chat">—</button>
-        </div>
-      </div>
-      <div id="chat-messages" class="chat-messages"></div>
-      <div id="chat-typing" class="chat-typing" role="status" aria-live="polite" hidden>
-        <span class="typing-dot"></span>
-        <span class="typing-dot"></span>
-        <span class="typing-dot"></span>
-        <span class="muted small">Hyperion está escribiendo…</span>
-      </div>
-      <p class="muted small chat-helper">Elegí una opción para empezar.</p>
-      <div class="chat-actions">
-        <p class="muted small chat-actions-title">Atajos rápidos</p>
-        <button id="chat-quick-1" type="button" class="btn btn-ghost btn-block">Ver planes</button>
-        <button id="chat-quick-2" type="button" class="btn btn-ghost btn-block">Agendar demo</button>
-        <button id="chat-quick-3" type="button" class="btn btn-ghost btn-block">Soporte</button>
-        <a
-          href="https://wa.me/5491169636251?text=Hola%2C%20necesito%20hablar%20con%20soporte%20humano."
-          class="btn btn-outline btn-block"
-          target="_blank"
-          rel="noopener"
-        >Hablar con humano</a>
-      </div>
-    </div>
-  </div>
 
   <div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" hidden>
     <div>
