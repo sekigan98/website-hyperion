@@ -99,6 +99,18 @@ function hideError(el) {
   el.textContent = "";
 }
 
+function showMessage(el, msg) {
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = msg || "";
+}
+
+function hideMessage(el) {
+  if (!el) return;
+  el.hidden = true;
+  el.textContent = "";
+}
+
 function escapeHtml(input) {
   const s = String(input ?? "");
   return s
@@ -389,6 +401,7 @@ function initAuthPage() {
   const registerForm = $("#register-form");
   const loginError = $("#login-error");
   const registerError = $("#register-error");
+  const registerSuccess = $("#register-success");
   const showRegisterLink = $("#show-register");
   const socialButtons = $all("[data-oauth]");
 
@@ -407,9 +420,15 @@ function initAuthPage() {
     if (isHidden) {
       registerForm.removeAttribute("hidden");
       loginForm.setAttribute("hidden", "true");
+      hideError(registerError);
+      hideMessage(registerSuccess);
+      hideError(loginError);
     } else {
       loginForm.removeAttribute("hidden");
       registerForm.setAttribute("hidden", "true");
+      hideError(registerError);
+      hideMessage(registerSuccess);
+      hideError(loginError);
     }
   });
 
@@ -477,6 +496,7 @@ function initAuthPage() {
   on(registerForm, "submit", async (e) => {
     e.preventDefault();
     hideError(registerError);
+    hideMessage(registerSuccess);
     setBusy(registerForm, true);
 
     const formData = new FormData(registerForm);
@@ -507,19 +527,10 @@ function initAuthPage() {
         return;
       }
 
-      // 2) Autologin
-      const login = await requestJson("/auth/login", {
-        method: "POST",
-        body: { email, password },
-      });
-
-      if (!login.res.ok || login.data?.ok === false || !login.data?.token) {
-        window.location.href = "login.html";
-        return;
-      }
-
-      setSession(login.data.token, login.data.user);
-      window.location.href = "dashboard.html";
+      showMessage(
+        registerSuccess,
+        "Te enviamos un email para validar la cuenta. Revisá tu bandeja (y spam)."
+      );
     } catch (err) {
       console.error("[auth] register error:", err);
       showError(registerError, "No se pudo conectar con el servidor. Intentá de nuevo.");
