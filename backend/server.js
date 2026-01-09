@@ -12,6 +12,10 @@ app.set("trust proxy", 1);
 
 const PORT = process.env.PORT || 4000;
 const API_BASE_URL = process.env.API_BASE_URL || `http://localhost:${PORT}`;
+const WEB_BASE_URL =
+  process.env.WEB_BASE_URL ||
+  process.env.FRONTEND_BASE_URL ||
+  "https://hyperionsite.netlify.app";
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -471,7 +475,7 @@ function createEmailVerificationToken() {
 }
 
 function buildVerificationLink(token) {
-  return `${API_BASE_URL}/api/auth/verify?token=${encodeURIComponent(token)}`;
+  return `${WEB_BASE_URL}/login.html?verify=${encodeURIComponent(token)}`;
 }
 
 async function sendVerificationEmail({ email, token }) {
@@ -482,17 +486,37 @@ async function sendVerificationEmail({ email, token }) {
 
   const verifyUrl = buildVerificationLink(token);
   const subject = "Validá tu cuenta de Hyperion";
+  const logoUrl = `${WEB_BASE_URL}/assets/hyperion_logo_lightmode.png`;
   const html = `
-    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #111;">
-      <h2>Validación de cuenta</h2>
-      <p>Gracias por registrarte en Hyperion. Para activar tu cuenta, hacé clic en el botón:</p>
-      <p>
-        <a href="${verifyUrl}" style="display:inline-block;padding:10px 16px;background:#4f46e5;color:#fff;border-radius:6px;text-decoration:none;">
-          Validar cuenta
-        </a>
-      </p>
-      <p>Si el botón no funciona, copiá y pegá este link en tu navegador:</p>
-      <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+    <div style="background:#f8fafc;padding:32px 20px;font-family:Arial,sans-serif;color:#0f172a;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:16px;box-shadow:0 18px 40px rgba(15,23,42,0.08);overflow:hidden;">
+        <tr>
+          <td style="padding:28px 32px;background:linear-gradient(135deg,#9005bb,#6d28d9);text-align:left;">
+            <img src="${logoUrl}" alt="Hyperion" style="display:block;height:28px;" />
+            <p style="margin:16px 0 0;color:#f8fafc;font-size:15px;">Activá tu acceso y empezá a gestionar tus licencias.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 32px;">
+            <h2 style="margin:0 0 12px;font-size:22px;color:#0f172a;">¡Tu cuenta está casi lista!</h2>
+            <p style="margin:0 0 16px;color:#475569;font-size:15px;">
+              Gracias por registrarte en Hyperion. Validá tu cuenta para desbloquear el dashboard,
+              descargar el cliente y gestionar tus planes.
+            </p>
+            <p style="margin:0 0 22px;color:#475569;font-size:15px;">Este botón te lleva al login y valida la cuenta en un solo paso.</p>
+            <a href="${verifyUrl}" style="display:inline-block;padding:12px 20px;border-radius:10px;background:linear-gradient(135deg,#9005bb,#6d28d9);color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;">
+              Validar cuenta y entrar
+            </a>
+            <p style="margin:22px 0 8px;color:#64748b;font-size:13px;">Si el botón no funciona, copiá y pegá este enlace:</p>
+            <p style="margin:0;"><a href="${verifyUrl}" style="color:#6d28d9;word-break:break-all;">${verifyUrl}</a></p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:18px 32px 26px;color:#94a3b8;font-size:12px;background:#f8fafc;">
+            Si no creaste esta cuenta, podés ignorar este correo.
+          </td>
+        </tr>
+      </table>
     </div>
   `;
 
@@ -1014,11 +1038,14 @@ app.get("/api/licenses/my", authMiddleware, (req, res) => {
 
     const response = rows.map((l) => {
       const activationsUsed = stmtCount.get(l.id).n;
+      let status = l.status;
+      const isExpired = l.expires_at && Date.parse(l.expires_at) <= Date.now();
+      if (status === "active" && isExpired) status = "expired";
       return {
         id: l.id,
         keyMasked: `${l.key.slice(0, 4)}-****-****`,
         planId: l.plan_id,
-        status: l.status,
+        status,
         createdAt: l.created_at,
         expiresAt: l.expires_at,
         maxActivations: l.max_activations,

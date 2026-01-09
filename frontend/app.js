@@ -180,6 +180,15 @@ function applyTheme(theme) {
   } else {
     root.setAttribute("data-theme", "dark");
   }
+  updateLogoAssets(theme);
+}
+
+function updateLogoAssets(theme) {
+  const isLight = theme === "light";
+  $all("img[data-logo-light][data-logo-dark]").forEach((img) => {
+    const nextSrc = isLight ? img.dataset.logoLight : img.dataset.logoDark;
+    if (nextSrc) img.src = nextSrc;
+  });
 }
 
 function initThemeToggle() {
@@ -410,6 +419,27 @@ function initAuthPage() {
   // Si venimos con ?next=..., luego del login vamos ahí
   const params = new URLSearchParams(window.location.search);
   const next = params.get("next") || "dashboard.html";
+  const verifyToken = params.get("verify");
+  const verifyMessage = $("#verify-message");
+  const verifyError = $("#verify-error");
+
+  if (verifyToken) {
+    (async () => {
+      hideError(verifyError);
+      hideMessage(verifyMessage);
+      try {
+        const { res, data } = await requestJson(`/auth/verify?token=${encodeURIComponent(verifyToken)}`);
+        if (!res.ok || data?.ok === false) {
+          showError(verifyError, data?.error || "No se pudo validar la cuenta.");
+          return;
+        }
+        showMessage(verifyMessage, "Cuenta validada correctamente. Ya podés iniciar sesión.");
+      } catch (err) {
+        console.error("[auth] verify error:", err);
+        showError(verifyError, "No se pudo validar la cuenta. Intentá de nuevo.");
+      }
+    })();
+  }
 
   // Toggle login / register
   on(showRegisterLink, "click", (e) => {
